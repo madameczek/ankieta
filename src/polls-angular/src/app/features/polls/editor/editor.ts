@@ -12,9 +12,10 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { Limits, PollQuestion } from '../../../core/api/api.models';
 import { isScreenError, toApiError } from '../../../core/api/api-error';
 import { Notifier } from '../../../core/notifier';
+import { SessionStore } from '../../../core/session/session.store';
 import { confirm } from '../../../shared/confirm-dialog';
 import { SaveBar, SaveState } from '../../../shared/save-bar';
-import { HasUnsavedChanges } from '../../../shared/unsaved-changes.guard';
+import { HasUnsavedChanges, warnBeforeUnload } from '../../../shared/unsaved-changes.guard';
 import { firstMessage } from '../create-poll-dialog';
 import { OwnerOnly } from '../owner-only';
 import { PollContext } from '../poll-context';
@@ -35,6 +36,7 @@ import { PollContext } from '../poll-context';
     SaveBar,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(window:beforeunload)': 'onBeforeUnload($event)' },
   templateUrl: './editor.html',
   styleUrl: './editor.scss',
 })
@@ -44,6 +46,7 @@ export class Editor implements HasUnsavedChanges {
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
   private readonly notifier = inject(Notifier);
+  private readonly session = inject(SessionStore);
 
   protected readonly limits = Limits;
 
@@ -77,6 +80,10 @@ export class Editor implements HasUnsavedChanges {
   /** D46: unsaved poll fields, a typed new question or an open question edit with changes. */
   hasUnsavedChanges(): boolean {
     return !this.deleted && (this.pollDirty() || !!this.newQuestion().trim() || this.editDirty());
+  }
+
+  protected onBeforeUnload(event: BeforeUnloadEvent): void {
+    warnBeforeUnload(event, this, this.session);
   }
 
   /** Set once the poll is deleted: nothing left to save, leave without asking. */

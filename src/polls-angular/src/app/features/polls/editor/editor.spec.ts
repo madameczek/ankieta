@@ -6,6 +6,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { PollDetail, PollQuestion } from '../../../core/api/api.models';
+import { SessionStore } from '../../../core/session/session.store';
 import { PollContext } from '../poll-context';
 import { Editor } from './editor';
 
@@ -58,6 +59,7 @@ describe('Editor – unsaved changes (D46)', () => {
           },
         },
         { provide: MatDialog, useValue: { open: () => ({ afterClosed: () => of(true) }) } },
+        { provide: SessionStore, useValue: { isUser: signal(true) } },
       ],
     });
     fixture = TestBed.createComponent(Editor);
@@ -131,5 +133,17 @@ describe('Editor – unsaved changes (D46)', () => {
     await fixture.whenStable();
 
     expect(editor.hasUnsavedChanges()).toBe(false);
+  });
+
+  it('asks the browser on tab close / reload only with unsaved input', () => {
+    const unload = () => {
+      const e = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(e);
+      return e.defaultPrevented;
+    };
+    expect(unload()).toBe(false);
+
+    state.newQuestion.set('napoje?');
+    expect(unload()).toBe(true);
   });
 });

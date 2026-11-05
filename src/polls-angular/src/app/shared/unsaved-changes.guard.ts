@@ -21,3 +21,15 @@ export const unsavedChangesGuard: CanDeactivateFn<HasUnsavedChanges> = (componen
     message: 'Masz niezapisane zmiany. Opuścić stronę?',
     confirm: 'Opuść',
   });
+
+/**
+ * D46: closing or reloading the tab (or typing another URL) with unsaved input lets the browser ask.
+ * The browser shows its own text; it can't be changed. Same rules as the guard: no prompt once the session is gone.
+ * Bind it on the screen: `host: { '(window:beforeunload)': 'onBeforeUnload($event)' }`.
+ */
+export function warnBeforeUnload(event: BeforeUnloadEvent, component: HasUnsavedChanges, session: SessionStore): void {
+  if (session.isUser() && component.hasUnsavedChanges()) {
+    event.preventDefault();
+    event.returnValue = ''; // browsers that ignore preventDefault() here
+  }
+}

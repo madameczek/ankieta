@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, viewChildren } from '@angular/core';
-import { HasUnsavedChanges } from '../../../shared/unsaved-changes.guard';
+import { SessionStore } from '../../../core/session/session.store';
+import { HasUnsavedChanges, warnBeforeUnload } from '../../../shared/unsaved-changes.guard';
 import { PollContext } from '../poll-context';
 import { AnswerItem } from './answer-item';
 
@@ -8,6 +9,7 @@ import { AnswerItem } from './answer-item';
   selector: 'app-answers',
   imports: [AnswerItem],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(window:beforeunload)': 'onBeforeUnload($event)' },
   template: `
     @if (poll.current(); as current) {
       @for (question of current.questions; track question.id; let i = $index) {
@@ -24,7 +26,13 @@ export class Answers implements HasUnsavedChanges {
   protected readonly poll = inject(PollContext);
   private readonly items = viewChildren(AnswerItem);
 
+  private readonly session = inject(SessionStore);
+
   hasUnsavedChanges(): boolean {
     return this.items().some((item) => item.dirty());
+  }
+
+  protected onBeforeUnload(event: BeforeUnloadEvent): void {
+    warnBeforeUnload(event, this, this.session);
   }
 }
