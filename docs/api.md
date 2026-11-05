@@ -40,14 +40,14 @@ Access column: **V** visitor allowed, **U** any user, **P** participant of the p
 | --- | --- | --- | --- | --- | --- |
 | GET | `/polls/{id}/participants` | O | – | 200 `[{userId, name, isOwner, answered}]` | |
 | POST | `/polls/{id}/participants` | O | `{userId}` | 204 | idempotent if already a participant |
-| DELETE | `/polls/{id}/participants/{userId}` | O | – | 204 | the owner can't be removed (D25) |
+| DELETE | `/polls/{id}/participants/{userId}` | O | – | 204 | the owner can't be removed (D25); removing a non-participant is a no-op |
 
 ## Answers and results
 
 | Method | Route | Access | Body | Success | Notes |
 | --- | --- | --- | --- | --- | --- |
 | PUT | `/polls/{id}/questions/{qid}/answer` | P | `{answer}` | 200 `{modifiedAt}` or 204 when cleared | upsert; empty or whitespace-only text deletes the row (D29, D31) |
-| GET | `/polls/{id}/results` | O | – | 200 `{questions:[{id, sortOrder, question, answers:[{userId, name, answer, modifiedAt}]}]}` | only current participants (D25, D33) |
+| GET | `/polls/{id}/results` | O | – | 200 `{participantCount, questions:[{id, sortOrder, question, answers:[{userId, name, answer, modifiedAt}]}]}` | only current participants (D25, D33); answers sorted by name |
 
 ## Infrastructure
 
@@ -62,7 +62,7 @@ Access column: **V** visitor allowed, **U** any user, **P** participant of the p
 
 | Status | When | Example codes |
 | --- | --- | --- |
-| 400 | validation failed | `validation.failed` (+ field codes such as `name.required`, `name.too_long`) |
+| 400 | validation failed | `validation.failed` + field codes: `name.required`, `name.too_long`, `search.too_long`, `page.invalid`, `pageSize.invalid`, `title.required`, `title.too_long`, `description.too_long`, `question.required`, `question.too_long`, `answer.too_long`, `questionIds.required` |
 | 401 | visitor calls a U/P/O endpoint | `session.required` |
 | 404 | poll, question or user not found, **or the caller isn't a participant** | `poll.not_found`, `question.not_found`, `user.not_found` |
 | 403 | participant calls an owner endpoint | `poll.owner_required` |

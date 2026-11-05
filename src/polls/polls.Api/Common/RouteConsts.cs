@@ -11,6 +11,7 @@ internal static class RouteConsts
 
     public const string Session = Api + "/session";
     public const string Users = Api + "/users";
+    public const string Polls = Api + "/polls";
 
     public const string ReadyTag = "ready";
 }

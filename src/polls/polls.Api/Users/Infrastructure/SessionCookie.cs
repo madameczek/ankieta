@@ -87,5 +87,9 @@ internal static class SessionCookie
     public static int? CurrentUserId(this ClaimsPrincipal principal) =>
         int.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 
+    /// <summary>For endpoints behind <c>RequireAuthorization</c>, where a current user is guaranteed.</summary>
+    public static int RequiredUserId(this ClaimsPrincipal principal) =>
+        principal.CurrentUserId() ?? throw new InvalidOperationException("No current user on an endpoint that requires one.");
+
     private static Task WriteProblemAsync(HttpContext http, Error error) => error.ToProblem().ExecuteAsync(http);
 }
