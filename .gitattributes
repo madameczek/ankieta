@@ -1,0 +1,61 @@
+# Normalize all text files to LF in the repo; the working copy follows the OS unless overridden below.
+* text=auto
+
+# --- Files consumed by Linux containers / shells: always LF ---
+# (CRLF breaks shebangs, env values get a trailing \r, nginx/k8s tooling may misread)
+*.sh            text eol=lf
+*.bash          text eol=lf
+Dockerfile      text eol=lf
+*.Dockerfile    text eol=lf
+*.dockerfile    text eol=lf
+.dockerignore   text eol=lf
+*.env           text eol=lf
+.env*           text eol=lf
+*.conf          text eol=lf
+*.yaml          text eol=lf
+*.yml           text eol=lf
+
+# --- Frontend: LF to match Prettier/ESLint defaults and avoid whole-file diffs ---
+*.ts            text eol=lf
+*.js            text eol=lf
+*.mjs           text eol=lf
+*.json          text eol=lf
+*.html          text eol=lf
+*.scss          text eol=lf
+*.css           text eol=lf
+
+# --- Windows-only scripts: always CRLF ---
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
+
+# --- .NET: let Git normalize; diff C# with the C# driver ---
+*.cs            text diff=csharp
+*.csproj        text
+*.slnx          text
+*.sln           text eol=crlf
+*.props         text
+*.targets       text
+
+# --- Docs and SQL ---
+*.md            text diff=markdown
+*.sql           text
+
+# --- Binary: never convert, never diff ---
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.gif           binary
+*.ico           binary
+*.webp          binary
+*.woff          binary
+*.woff2         binary
+*.ttf           binary
+*.eot           binary
+*.pdf           binary
+*.zip           binary
+*.gz            binary
+*.pfx           binary
+*.p12           binary
+*.snk           binary
+*.dll           binary
+*.exe           binary
