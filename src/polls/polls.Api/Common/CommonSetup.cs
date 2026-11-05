@@ -19,6 +19,7 @@ internal static class CommonSetup
         ValidatorOptions.Global.DefaultRuleLevelCascadeMode = CascadeMode.Stop;
 
         services.AddProblemDetails(o => o.CustomizeProblemDetails = FallbackErrorCodes.AddCodeIfMissing);
+        services.AddExceptionHandler<ClientAbortedExceptionHandler>();
         // Malformed or missing bodies become a 400 ProblemDetails (code request.invalid) in every environment.
         services.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = false);
         services.AddOpenApi();
