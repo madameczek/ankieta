@@ -107,6 +107,16 @@ Changes from the spec: `order` becomes `sort_order` (`ORDER` is a reserved word)
 - **D43 Lockout on create returns 503** with code `limit.users_reached` / `limit.polls_reached`.
 - **D44 The session cookie is persistent with a 1-year sliding expiry.** HttpOnly, SameSite=Lax, Secure outside Development.
 
+## UI
+
+- **D45 The UI is described in `docs/ui.md`.** Owner screens for a poll are router tabs under `/polls/:id` (answers, editor, participants, results); a participant sees only "my answers".
+- **D46 Unsaved answers are protected** by a `canDeactivate` confirm dialog plus `beforeunload`.
+- **D47 Material 3 theme that follows the system light/dark setting**, no toggle.
+- **D48 Frontend tests:** Vitest unit tests + Playwright e2e for the main flows.
+- **D49 E2E runs use a throwaway SQL Server container.** A script starts SQL Server in Docker, applies the idempotent migration script, runs the API against it, runs Playwright, then removes the container. The shared dev DB is never touched.
+- **D50 "My polls" uses Material list rows** (`mat-nav-list`).
+- **D51 "Become user" switches immediately**, without confirmation; a snackbar names the new user.
+
 ## Open items
 
 - [ ] Rate-limit numbers (D15)
