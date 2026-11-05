@@ -24,6 +24,12 @@ internal sealed class RateLimitSettings
 
     /// <summary>Create endpoints (users, polls), per client IP.</summary>
     public RateLimitWindow Create { get; init; } = new() { PermitLimit = 10 };
+
+    /// <summary>
+    /// Optional request header with the real client IP, set by an edge proxy in front of the gateway.
+    /// Empty: use the address resolved from <c>X-Forwarded-For</c>.
+    /// </summary>
+    public string ClientIpHeader { get; init; } = "";
 }
 
 internal static class RateLimitPolicies
@@ -51,9 +57,9 @@ internal static class RateLimitingSetup
             o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(http =>
                 http.Request.Path.StartsWithSegments(RouteConsts.Health)
                     ? RateLimitPartition.GetNoLimiter("health")
-                    : FixedWindow("global:" + ClientIp(http), Settings(http).Global));
+                    : FixedWindow("global:" + ClientIp(http, Settings(http)), Settings(http).Global));
 
-            o.AddPolicy(RateLimitPolicies.Create, http => FixedWindow("create:" + ClientIp(http), Settings(http).Create));
+            o.AddPolicy(RateLimitPolicies.Create, http => FixedWindow("create:" + ClientIp(http, Settings(http)), Settings(http).Create));
 
             o.OnRejected = async (context, cancellationToken) =>
             {
@@ -73,7 +79,17 @@ internal static class RateLimitingSetup
     private static RateLimitSettings Settings(HttpContext http) =>
         http.RequestServices.GetRequiredService<IOptions<RateLimitSettings>>().Value;
 
-    private static string ClientIp(HttpContext http) => http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    private static string ClientIp(HttpContext http, RateLimitSettings settings)
+    {
+        if (settings.ClientIpHeader.Length > 0
+            && http.Request.Headers.TryGetValue(settings.ClientIpHeader, out var header)
+            && !string.IsNullOrWhiteSpace(header.ToString()))
+        {
+            return header.ToString().Trim();
+        }
+
+        return http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    }
 
     private static RateLimitPartition<string> FixedWindow(string key, RateLimitWindow window) =>
         RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions

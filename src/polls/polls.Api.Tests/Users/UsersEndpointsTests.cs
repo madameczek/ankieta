@@ -95,6 +95,33 @@ public sealed class UsersEndpointsTests(SqlServerFixture database) : IAsyncDispo
     }
 
     [Fact]
+    public async Task Post_ClientIpHeaderConfigured_LimitsPerHeaderValue()
+    {
+        await using var limited = new PollsApiFactory(database.ConnectionString, new Dictionary<string, string?>
+        {
+            ["RateLimiting:Create:PermitLimit"] = "1",
+            ["RateLimiting:ClientIpHeader"] = "X-Client-Ip",
+        });
+        using var client = limited.CreateClient();
+
+        using var first = await PostUserFromAsync(client, "203.0.113.1");
+        using var repeated = await PostUserFromAsync(client, "203.0.113.1");
+        using var other = await PostUserFromAsync(client, "203.0.113.2");
+
+        first.StatusCode.Should().Be(HttpStatusCode.Created);
+        repeated.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        other.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    private static async Task<HttpResponseMessage> PostUserFromAsync(HttpClient client, string clientIp)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/users");
+        request.Content = JsonContent.Create(new { name = TestData.Unique("user") });
+        request.Headers.Add("X-Client-Ip", clientIp);
+        return await client.SendAsync(request, Ct);
+    }
+
+    [Fact]
     public async Task Get_Search_ReturnsMatchingUsersSortedAndPaged()
     {
         using var client = _factory.CreateClient();
