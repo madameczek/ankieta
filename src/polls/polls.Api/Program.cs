@@ -2,6 +2,8 @@ using System.Globalization;
 using Polls.Api.Common;
 using Polls.Api.Common.Logging;
 using Polls.Api.Infrastructure;
+using Polls.Api.Thresholds.PublicApi;
+using Polls.Api.Users.PublicApi;
 using Serilog;
 using Serilog.Events;
 
@@ -29,8 +31,10 @@ try
         // tests start several app instances in one process; the static bootstrap logger can be frozen only once
         preserveStaticLogger: builder.Environment.IsEnvironment("Testing"));
 
-    builder.Services.AddPollsCommon();
+    builder.Services.AddPollsCommon(builder.Configuration);
     builder.Services.AddPollsDatabase();
+    builder.Services.AddUsersModule(builder.Configuration);
+    builder.Services.AddThresholdsModule(builder.Configuration);
 
     var app = builder.Build();
 

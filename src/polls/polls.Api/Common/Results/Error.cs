@@ -7,6 +7,7 @@ internal enum ErrorType
     Forbidden,
     NotFound,
     Conflict,
+    TooManyRequests,
     Unavailable,
 }
 
@@ -28,6 +29,8 @@ internal sealed record Error(ErrorType Type, string Code, string? Detail = null)
     public static Error NotFound(string code) => new(ErrorType.NotFound, code);
 
     public static Error Conflict(string code) => new(ErrorType.Conflict, code);
+
+    public static Error TooManyRequests(string code) => new(ErrorType.TooManyRequests, code);
 
     public static Error Unavailable(string code) => new(ErrorType.Unavailable, code);
 }

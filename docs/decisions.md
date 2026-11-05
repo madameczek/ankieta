@@ -23,6 +23,7 @@ Environment-specific infrastructure (hosts, addresses, credentials, cluster rout
   - `POST /api/session/{userId}` is "become user"
   - `DELETE /api/session` is "leave", back to visitor mode
   - A missing, invalid or unknown cookie means *visitor*.
+  - Implemented with ASP.NET's cookie authentication scheme (it selects the user; there is no credential check). Every request checks that the cookie's user exists; if not, the cookie is cleared.
 - **D11 Visitor** can only list users, create a user and become a user. All poll endpoints require a current user.
 
 ## Database
@@ -120,7 +121,7 @@ Changes from the spec: `order` becomes `sort_order` (`ORDER` is a reserved word)
 
 ## Open items
 
-- [ ] Rate-limit numbers (D15)
+- [ ] Rate-limit numbers (D15): defaults per client IP are 300 requests/min overall and 10 creates/min; confirm or change
 - [ ] Mail API request contract (D17)
 - [ ] docker-desktop overlay: how traffic is routed (D19, D20) and which SQL Server it uses
 - [ ] Environment values (hosts, credentials, routing): tracked in the local-only files named at the top

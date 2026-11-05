@@ -1,8 +1,10 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Polls.Api.Common.Email;
 using Polls.Api.Common.Endpoints;
 using Polls.Api.Common.Handlers;
 using Polls.Api.Common.Logging;
+using Polls.Api.Common.RateLimiting;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -10,7 +12,7 @@ namespace Polls.Api.Common;
 
 internal static class CommonSetup
 {
-    public static IServiceCollection AddPollsCommon(this IServiceCollection services)
+    public static IServiceCollection AddPollsCommon(this IServiceCollection services, IConfiguration configuration)
     {
         ValidatorOptions.Global.DefaultClassLevelCascadeMode = CascadeMode.Stop;
         ValidatorOptions.Global.DefaultRuleLevelCascadeMode = CascadeMode.Stop;
@@ -18,6 +20,8 @@ internal static class CommonSetup
         services.AddProblemDetails();
         services.AddOpenApi();
         services.AddHealthChecks();
+        services.AddPollsRateLimiting(configuration);
+        services.AddSingleton<IEmailSender, LoggingEmailSender>();
         services.AddValidatorsFromAssemblyContaining<Marker>(includeInternalTypes: true);
         services.RegisterHandlersFromAssemblyContaining<Marker>();
         services.RegisterApiEndpointsFromAssemblyContaining<Marker>();
@@ -27,9 +31,13 @@ internal static class CommonSetup
 
     public static WebApplication UsePollsCommon(this WebApplication app)
     {
+        app.UseForwardedHeaders();
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseSerilogRequestLogging(o => o.GetLevel = RequestLogLevel.Get);
+        app.UseRateLimiter();
+        app.UseAuthentication();
+        app.UseAuthorization();
 
         app.MapOpenApi(RouteConsts.OpenApi);
         app.MapScalarApiReference(RouteConsts.Docs, options => options.OpenApiRoutePattern = RouteConsts.OpenApi);

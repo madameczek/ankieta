@@ -32,6 +32,7 @@ internal static class ResultHttpExtensions
         ErrorType.Forbidden => StatusCodes.Status403Forbidden,
         ErrorType.NotFound => StatusCodes.Status404NotFound,
         ErrorType.Conflict => StatusCodes.Status409Conflict,
+        ErrorType.TooManyRequests => StatusCodes.Status429TooManyRequests,
         ErrorType.Unavailable => StatusCodes.Status503ServiceUnavailable,
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };

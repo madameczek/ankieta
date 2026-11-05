@@ -14,6 +14,7 @@ public sealed class ResultHttpExtensionsTests
     [InlineData(nameof(ErrorType.Forbidden), StatusCodes.Status403Forbidden)]
     [InlineData(nameof(ErrorType.NotFound), StatusCodes.Status404NotFound)]
     [InlineData(nameof(ErrorType.Conflict), StatusCodes.Status409Conflict)]
+    [InlineData(nameof(ErrorType.TooManyRequests), StatusCodes.Status429TooManyRequests)]
     [InlineData(nameof(ErrorType.Unavailable), StatusCodes.Status503ServiceUnavailable)]
     public void ToProblem_BusinessError_ReturnsProblemWithStatusAndCode(string type, int expectedStatus)
     {
