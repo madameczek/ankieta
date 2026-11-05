@@ -5,7 +5,7 @@ The schema is defined by EF Core code-first (Fluent API, D12, D52). Migrations l
 is generated from them and committed. It is what gets run against the database (D13) and what the tests apply.
 
 Diagram of the tables and relations: [db-schema.svg](db-schema.svg), text version in [db-schema.md](db-schema.md).
-Update both when the model changes.
+After a model change, update the table list in `docs/tools/db-schema.py` and run `python docs/tools/db-schema.py`.
 
 All commands run in `src/polls`.
 
