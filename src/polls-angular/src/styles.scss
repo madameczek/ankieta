@@ -50,6 +50,13 @@ body {
   width: 100%;
 }
 
+// Label resting inside an empty field: lighter than typed text, so the two are easy to tell apart.
+// A floated label (focused or filled) keeps the theme colour.
+// (selector outweighs Material's resting/hover label rules, which load after this file)
+.mat-mdc-form-field .mat-mdc-text-field-wrapper.mdc-text-field .mdc-floating-label:not(.mdc-floating-label--float-above) {
+  color: color-mix(in srgb, var(--mat-sys-on-surface-variant) 55%, transparent);
+}
+
 .muted {
   color: var(--mat-sys-on-surface-variant);
 }
@@ -78,7 +85,8 @@ body {
   }
 }
 
+// Material's filled button reads its colours from these tokens (a plain background-color loses)
 button.danger {
-  background-color: var(--mat-sys-error);
-  color: var(--mat-sys-on-error);
+  --mat-button-filled-container-color: var(--mat-sys-error);
+  --mat-button-filled-label-text-color: var(--mat-sys-on-error);
 }

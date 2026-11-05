@@ -1,6 +1,7 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
+import { TextFieldModule } from '@angular/cdk/text-field';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, linkedSignal, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal, untracked } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -12,6 +13,8 @@ import { Limits, PollQuestion } from '../../../core/api/api.models';
 import { isScreenError, toApiError } from '../../../core/api/api-error';
 import { Notifier } from '../../../core/notifier';
 import { confirm } from '../../../shared/confirm-dialog';
+import { SaveBar, SaveState } from '../../../shared/save-bar';
+import { HasUnsavedChanges } from '../../../shared/unsaved-changes.guard';
 import { firstMessage } from '../create-poll-dialog';
 import { OwnerOnly } from '../owner-only';
 import { PollContext } from '../poll-context';
@@ -19,12 +22,23 @@ import { PollContext } from '../poll-context';
 /** Owner only (D26): poll fields, questions (add, edit, drag & drop order, delete) and deleting the poll. */
 @Component({
   selector: 'app-editor',
-  imports: [CdkDropList, CdkDrag, CdkDragHandle, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, OwnerOnly],
+  imports: [
+    CdkDropList,
+    CdkDrag,
+    CdkDragHandle,
+    TextFieldModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    OwnerOnly,
+    SaveBar,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './editor.html',
   styleUrl: './editor.scss',
 })
-export class Editor {
+export class Editor implements HasUnsavedChanges {
   protected readonly poll = inject(PollContext);
   private readonly http = inject(HttpClient);
   private readonly dialog = inject(MatDialog);
@@ -42,6 +56,13 @@ export class Editor {
     source: () => this.poll.current()?.id,
     computation: () => untracked(() => this.poll.current()?.description ?? ''),
   });
+  /** Last saved poll fields: follow every reload, set at once after a save. */
+  private readonly savedTitle = linkedSignal(() => this.poll.current()?.title ?? '');
+  private readonly savedDescription = linkedSignal(() => this.poll.current()?.description ?? '');
+  protected readonly pollDirty = computed(
+    () => this.title() !== this.savedTitle() || this.description() !== this.savedDescription(),
+  );
+  protected readonly pollState = signal<SaveState>('idle');
   protected readonly pollError = signal<string | null>(null);
 
   /** Local copy, so a drop shows at once (optimistic, D9). */
@@ -52,11 +73,42 @@ export class Editor {
   protected readonly questionError = signal<string | null>(null);
   protected readonly busy = signal(false);
 
+  /** D46: unsaved poll fields, a typed new question or an open question edit with changes. */
+  hasUnsavedChanges(): boolean {
+    return !this.deleted && (this.pollDirty() || !!this.newQuestion().trim() || this.editDirty());
+  }
+
+  /** Set once the poll is deleted: nothing left to save, leave without asking. */
+  private deleted = false;
+
+  protected readonly editDirty = computed(() => {
+    const id = this.editingId();
+    return id !== null && this.editText() !== this.questions().find((q) => q.id === id)?.question;
+  });
+
   protected async savePoll(): Promise<void> {
+    if (!this.pollDirty() || !this.title().trim() || this.pollState() === 'saving') {
+      return;
+    }
     this.pollError.set(null);
-    const body = { title: this.title(), description: this.description() || null };
-    if (await this.run(() => this.http.put(this.poll.url(), body), (m) => this.pollError.set(m))) {
-      this.notifier.info('Zapisano ankietę.');
+    this.pollState.set('saving');
+    const title = this.title();
+    const description = this.description();
+    const body = { title, description: description || null };
+    const ok = await this.run(
+      () => this.http.put(this.poll.url(), body),
+      (m) => {
+        this.pollError.set(m);
+        this.pollState.set('error');
+      },
+    );
+    if (ok) {
+      this.savedTitle.set(title);
+      this.savedDescription.set(description);
+    }
+    if (this.pollState() === 'saving') {
+      // saved, or an error the interceptor already showed: the status falls back to saved / unsaved
+      this.pollState.set('idle');
     }
   }
 
@@ -122,6 +174,7 @@ export class Editor {
     }).subscribe(async (ok) => {
       if (ok && (await this.run(() => this.http.delete(this.poll.url()), (m) => this.notifier.info(m), false))) {
         this.notifier.info('Usunięto ankietę.');
+        this.deleted = true;
         await this.router.navigate(['/polls']);
       }
     });

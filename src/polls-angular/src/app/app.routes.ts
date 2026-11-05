@@ -36,6 +36,7 @@ export const routes: Routes = [
       },
       {
         path: 'edit',
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () => import('./features/polls/editor/editor').then((m) => m.Editor),
       },
       {

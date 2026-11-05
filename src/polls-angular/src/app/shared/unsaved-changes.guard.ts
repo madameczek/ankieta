@@ -8,13 +8,16 @@ export interface HasUnsavedChanges {
   hasUnsavedChanges(): boolean;
 }
 
-/** D46: leaving a screen with unsaved answers asks first. */
+/**
+ * D46: leaving a screen with unsaved input (answers, poll editor) asks first – also when switching or leaving
+ * the user, since the shell navigates to /users before it changes the session.
+ */
 export const unsavedChangesGuard: CanDeactivateFn<HasUnsavedChanges> = (component) =>
   // after a 401 the session is gone and nothing can be saved any more: don't ask
   !inject(SessionStore).isUser() ||
   !component.hasUnsavedChanges() ||
   confirm(inject(MatDialog), {
     title: 'Niezapisane zmiany',
-    message: 'Masz niezapisane odpowiedzi. Opuścić stronę?',
+    message: 'Masz niezapisane zmiany. Opuścić stronę?',
     confirm: 'Opuść',
   });

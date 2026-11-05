@@ -60,12 +60,16 @@ export class App {
   private readonly router = inject(Router);
 
   protected async leave(): Promise<void> {
+    // Navigate first: the screen's unsaved-changes guard can still ask while the user is signed in (D46)
+    const onUsers = this.router.url.split(/[?#]/)[0] === '/users';
+    if (!onUsers && !(await this.router.navigate(['/users']))) {
+      return;
+    }
     try {
       await this.session.leave();
     } catch {
       // the interceptor showed the error; leave locally anyway (the cookie expires or is replaced later)
       this.session.clear();
     }
-    await this.router.navigate(['/users']);
   }
 }

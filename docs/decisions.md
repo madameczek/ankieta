@@ -113,7 +113,7 @@ Changes from the spec: `order` becomes `sort_order` (`ORDER` is a reserved word)
 ## UI
 
 - **D45 The UI is described in `docs/ui.md`.** Owner screens for a poll are router tabs under `/polls/:id` (answers, editor, participants, results); a participant sees only "my answers".
-- **D46 Unsaved answers are protected** by a `canDeactivate` confirm dialog plus `beforeunload`.
+- **D46 Unsaved input is protected** (answers, and the editor's poll fields, new question and open question edit) by a `canDeactivate` confirm dialog plus `beforeunload`. "Wyjdź" navigates to `/users` before it ends the session, so the dialog also covers leaving; "Zmień użytkownika" is a link to `/users` and is covered the same way.
 - **D47 Material 3 theme that follows the system light/dark setting**, no toggle.
 - **D48 Frontend tests:** Vitest unit tests + Playwright e2e for the main flows.
 - **D49 E2E runs use a throwaway SQL Server container.** A script starts SQL Server in Docker, applies the idempotent migration script, runs the API against it, runs Playwright, then removes the container. The shared dev DB is never touched.

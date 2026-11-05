@@ -48,17 +48,17 @@ API calls follow `docs/api.md`. Access: **V** visitor, **U** user, **P** partici
 - 404 from the API → in-page message "Ankieta nie istnieje lub nie masz do niej dostępu" + link to `/polls` (D41).
 
 ### `/polls/:id/answers` – My answers (D29, D31)
-- Questions in `sort_order`. Each one: question text, `textarea` (autosize, max 4000 characters with a counter), button "Zapisz", status line:
-  - "Zapisano 12:34" · "Niezapisane zmiany" · "Zapisywanie…" · error text.
-- Saving empty text deletes the answer; the status becomes "Brak odpowiedzi".
-- Unsaved changes: leaving the route asks "Masz niezapisane odpowiedzi. Opuścić stronę?" (`canDeactivate` guard), and closing or reloading the tab triggers the browser's `beforeunload` prompt (D46).
+- Questions in `sort_order`. Each one: question text, `textarea` (one line, grows with Enter; max 4000 characters with a counter) and the shared save bar:
+  status "Zapisano 12:34" · "Niezapisane zmiany" · "Zapisywanie…" · error text, and "Zapisz" (outlined, enabled only with unsaved changes).
+- Unanswered question (or empty text saved, which deletes the answer): status "Brak odpowiedzi" in the accent colour with a "?" icon.
+- Unsaved changes: leaving the route, switching the user or "Wyjdź" asks "Masz niezapisane zmiany. Opuścić stronę?" (`canDeactivate` guard), and closing or reloading the tab triggers the browser's `beforeunload` prompt (D46).
 - No questions yet → "Właściciel nie dodał jeszcze pytań".
 
 ### `/polls/:id/edit` – Poll editor (D9, D26)
-- Form: title, description, button "Zapisz" (`PUT /polls/{id}`).
-- Question list (`cdkDropList`) with a drag handle, text, "Edytuj" (inline textarea with Save / Cancel), "Usuń" (confirm dialog).
+- Form: title, description and the same save bar as the answers (`PUT /polls/{id}`; "Zapisano" / "Niezapisane zmiany", "Zapisz" enabled only with changes).
+- Question list (`cdkDropList`) with a drag handle, text, "Edytuj" (inline one-line growing textarea with Cancel / Save, Save enabled only with changes), "Usuń" (confirm dialog).
   - Drop → optimistic reorder, then `PUT /questions/order`; on error the old order is restored and a snackbar is shown.
-- At the bottom: textarea + "Dodaj pytanie" (`POST /questions`, appended at the end).
+- At the bottom: one-line growing textarea + "Dodaj pytanie" (`POST /questions`, appended at the end).
 - Danger zone: "Usuń ankietę" (confirm dialog with the title) → `DELETE /polls/{id}` → `/polls`.
 
 ### `/polls/:id/participants` – Participants (D25)
