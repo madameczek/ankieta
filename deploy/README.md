@@ -61,5 +61,7 @@ no client IP header (no edge proxy).
 
 - One replica each (D38); the API's rate limiter is in memory, Data Protection keys are stored in the DB (D22).
 - Probes: API `/api/health/live` (startup, liveness) and `/api/health/ready` (readiness, includes the DB); web `/healthz`.
+- Rollouts: both containers sleep 5 s in `preStop`, so the Service stops sending them traffic before they shut down
+  (no hung requests while pods are replaced). The SPA's startup call `/api/session` also times out after 5 s and retries once.
 - Containers run as non-root with a read-only root filesystem; `/tmp` is an `emptyDir`.
 - Logs: console (`kubectl logs`) and Graylog (D16).

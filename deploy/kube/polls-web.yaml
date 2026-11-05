@@ -50,6 +50,11 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          # Same as polls-api: let the Service drop this pod before nginx stops (busybox sleep in the image)
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
           volumeMounts:
             # nginx writes its pid and temp files here
             - name: tmp

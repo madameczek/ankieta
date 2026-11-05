@@ -32,6 +32,37 @@ describe('SessionStore', () => {
     expect(store.isUser()).toBe(false);
   });
 
+  it('load() retries once when the first call hangs (e.g. during a deploy)', async () => {
+    vi.useFakeTimers();
+    try {
+      const loading = store.load();
+      backend.expectOne('/api/session'); // never answered
+      await vi.advanceTimersByTimeAsync(SessionStore.loadTimeoutMs);
+      backend.expectOne('/api/session').flush({ user: { id: 7, name: 'Ala' } });
+      await loading;
+
+      expect(store.user()).toEqual({ id: 7, name: 'Ala' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('load() starts as visitor when both attempts hang', async () => {
+    vi.useFakeTimers();
+    try {
+      const loading = store.load();
+      backend.expectOne('/api/session');
+      await vi.advanceTimersByTimeAsync(SessionStore.loadTimeoutMs);
+      backend.expectOne('/api/session');
+      await vi.advanceTimersByTimeAsync(SessionStore.loadTimeoutMs);
+      await loading;
+
+      expect(store.isUser()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('become() switches to the returned user', async () => {
     const becoming = store.become(3);
     const request = backend.expectOne('/api/session/3');

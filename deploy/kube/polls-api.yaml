@@ -63,6 +63,12 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          # Keep serving a few seconds after the pod is marked for deletion, until the Service stops sending it traffic;
+          # otherwise requests that arrive during a rollout can hang (the image has /bin/sleep)
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
           volumeMounts:
             - name: tmp
               mountPath: /tmp
