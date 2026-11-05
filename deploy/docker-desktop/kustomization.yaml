@@ -1,0 +1,59 @@
+# Overlay for Docker Desktop's local Kubernetes (D21, D54). Deploy with deploy/docker-desktop/deploy.sh
+# (builds the :dev images, applies with --context docker-desktop, restarts the pods), then open http://localhost:30090.
+# No gateway here: polls-web's nginx also proxies /api to polls-api (same origin, D19) and is exposed as a NodePort.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: polls-pkp
+
+resources:
+  - ../kube
+  - polls-web-nodeport.yaml
+
+# Images built locally by deploy/build.sh; the node shares Docker's image store, nothing is pulled
+images:
+  - name: polls-api
+    newTag: dev
+  - name: polls-web
+    newTag: dev
+
+configMapGenerator:
+  # Plain http on localhost: the session cookie must not be Secure
+  - name: polls-api-config
+    behavior: merge
+    literals:
+      - Session__SecureCookie=false
+  - name: polls-web-nginx
+    files:
+      - default.conf=nginx.conf
+
+# API secret; copy secrets.env.example to secrets.env (never committed) and fill it in
+secretGenerator:
+  - name: polls-api-secrets
+    envs:
+      - secrets.env
+
+patches:
+  # Local images only: no registry pull secret in this cluster
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: remove
+        path: /spec/template/spec/imagePullSecrets
+  - target:
+      kind: Deployment
+      name: polls-web
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: nginx-conf
+          configMap:
+            name: polls-web-nginx
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: nginx-conf
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+          readOnly: true

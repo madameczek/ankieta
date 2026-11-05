@@ -119,9 +119,9 @@ Changes from the spec: `order` becomes `sort_order` (`ORDER` is a reserved word)
 - **D49 E2E runs use a throwaway SQL Server container.** A script starts SQL Server in Docker, applies the idempotent migration script, runs the API against it, runs Playwright, then removes the container. The shared dev DB is never touched.
 - **D50 "My polls" uses Material list rows** (`mat-nav-list`).
 - **D51 "Become user" switches immediately**, without confirmation; a snackbar names the new user.
+- **D54 Docker Desktop overlay.** No gateway: the overlay mounts an nginx config into polls-web that also proxies `/api` to polls-api (D19), exposed as NodePort 30090 on localhost. Plain http, so `Session:SecureCookie` is off. Images are the local `:dev` builds (no pull secret). The API uses the shared SQL Server (D36); its Secret comes from a never-committed `secrets.env` next to the overlay. `deploy/docker-desktop/deploy.sh` builds, applies with the `docker-desktop` context fixed and restarts the pods.
 
 ## Open items
 
 - [ ] Rate-limit numbers (D15): defaults per client IP are 300 requests/min overall and 10 creates/min; confirm or change
 - [ ] Environment values (hosts, credentials, routing): tracked in the local-only files named at the top
-- [ ] docker-desktop overlay: how traffic is routed (D19, D20) and which SQL Server it uses

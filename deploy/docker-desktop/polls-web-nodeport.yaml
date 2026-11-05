@@ -1,0 +1,16 @@
+# Entry point on the host: http://localhost:30090 (Docker Desktop publishes NodePorts on localhost)
+apiVersion: v1
+kind: Service
+metadata:
+  name: polls-web-nodeport
+  labels:
+    app.kubernetes.io/name: polls-web
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: polls-web
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      nodePort: 30090

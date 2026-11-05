@@ -11,7 +11,7 @@ Same origin, so no CORS and the session cookie just works. Decisions: `docs/deci
 | `polls-web.Dockerfile` (+ `.dockerignore`), `nginx.conf` | SPA image, build context `src/polls-angular`, `deploy/` as named context `deploy` |
 | `build.sh` | builds both images; with a registry also tags and pushes |
 | `kube/` | shared kustomize base: namespace `polls-pkp`, Deployments, Services (no route) |
-| `docker-desktop/` | overlay for local Kubernetes (C3 in `docs/plan.md`) |
+| `docker-desktop/` | overlay for Docker Desktop Kubernetes and its `deploy.sh` (see below, D54) |
 
 Other environment overlays are kept outside the repository. An overlay must provide:
 
@@ -39,6 +39,18 @@ Other environment overlays are kept outside the repository. An overlay must prov
 3. **Render and check**: `kubectl kustomize <overlay>`
 4. **Apply**: `kubectl --context <context> apply -k <overlay>`
 5. **Verify**: `kubectl -n polls-pkp get pods` (both `Running`, ready `1/1`); `curl https://<host>/api/health/ready` → `Healthy`.
+
+## Docker Desktop (local Kubernetes)
+
+1. Schema as in step 1 above (the overlay uses the shared SQL Server, D36).
+2. `cp deploy/docker-desktop/secrets.env.example deploy/docker-desktop/secrets.env` and fill it in (never committed).
+3. `deploy/docker-desktop/deploy.sh` – builds `polls-api:dev` / `polls-web:dev`, applies the overlay with
+   `--context docker-desktop` (never the current context) and restarts the pods, since every build reuses the `:dev` tag.
+   `--no-build` skips the image build.
+4. Open http://localhost:30090 (NodePort). `/api` is proxied by the web pod's nginx; there is no gateway.
+
+Differences from a cluster overlay: plain http, so `Session__SecureCookie=false`; local images, so no `ghcr-pull`;
+no client IP header (no edge proxy).
 
 ## Runtime notes
 
