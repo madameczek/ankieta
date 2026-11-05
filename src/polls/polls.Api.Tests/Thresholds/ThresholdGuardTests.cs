@@ -18,7 +18,7 @@ namespace Polls.Api.Tests.Thresholds;
 /// </summary>
 public sealed class ThresholdGuardTests(SqlServerFixture database)
 {
-    private const string AdminEmail = "admin@example.test";
+    private const string To = "admin@example.test";
 
     private static readonly ThresholdLimits AlwaysLocked = new(Warning: 0, Lockout: 0);
     private static readonly ThresholdLimits AlwaysWarning = new(Warning: 0, Lockout: int.MaxValue);
@@ -73,20 +73,44 @@ public sealed class ThresholdGuardTests(SqlServerFixture database)
 
         first.IsSuccess.Should().BeTrue();
         second.IsSuccess.Should().BeTrue();
-        await _email.Received(1).SendAsync(Arg.Is<EmailMessage>(m => m.To == AdminEmail && m.Subject.Contains("users")), Arg.Any<CancellationToken>());
+        await _email.Received(1).SendAsync(Arg.Is<EmailMessage>(m => m.To == To && m.Subject.Contains("users")), Arg.Any<CancellationToken>());
         (await db.ThresholdWarnings.SingleAsync(Ct)).Resource.Should().Be(ThresholdWarning.Users);
     }
 
     [Fact]
-    public async Task CheckUsers_WarningWithoutAdminEmail_RecordsWithoutEmail()
+    public async Task CheckUsers_WarningEmailFails_SucceedsAndRecordsWarning()
     {
         await using var db = await CleanContextAsync();
+        _email.SendAsync(default!, Ct).ReturnsForAnyArgs(Task.FromException(new HttpRequestException("mail API down")));
 
-        var result = await Guard(db, users: AlwaysWarning, adminEmail: null).CheckUsersAsync(Ct);
+        var result = await Guard(db, users: AlwaysWarning).CheckUsersAsync(Ct);
 
         result.IsSuccess.Should().BeTrue();
-        await _email.DidNotReceiveWithAnyArgs().SendAsync(default!, Ct);
-        (await db.ThresholdWarnings.AnyAsync(w => w.Resource == ThresholdWarning.Users, Ct)).Should().BeTrue();
+        (await db.ThresholdWarnings.SingleAsync(Ct)).Resource.Should().Be(ThresholdWarning.Users);
+    }
+
+    [Fact]
+    public async Task CheckUsers_WarningEmailTimesOut_SucceedsAndRecordsWarning()
+    {
+        await using var db = await CleanContextAsync();
+        _email.SendAsync(default!, Ct).ReturnsForAnyArgs(Task.FromException(new TaskCanceledException("timeout", new TimeoutException())));
+
+        var result = await Guard(db, users: AlwaysWarning).CheckUsersAsync(Ct);
+
+        result.IsSuccess.Should().BeTrue();
+        (await db.ThresholdWarnings.SingleAsync(Ct)).Resource.Should().Be(ThresholdWarning.Users);
+    }
+
+    [Fact]
+    public async Task CheckUsers_WarningEmailCanceled_ThrowsAndRecordsNothing()
+    {
+        await using var db = await CleanContextAsync();
+        _email.SendAsync(default!, Ct).ReturnsForAnyArgs(Task.FromException(new TaskCanceledException()));
+
+        var check = () => Guard(db, users: AlwaysWarning).CheckUsersAsync(Ct);
+
+        await check.Should().ThrowAsync<TaskCanceledException>();
+        (await db.ThresholdWarnings.AnyAsync(Ct)).Should().BeFalse();
     }
 
     [Fact]
@@ -108,16 +132,16 @@ public sealed class ThresholdGuardTests(SqlServerFixture database)
         return db;
     }
 
-    private ThresholdGuard Guard(PollsDbContext db, ThresholdLimits? users = null, ThresholdLimits? polls = null, string? adminEmail = AdminEmail) =>
+    private ThresholdGuard Guard(PollsDbContext db, ThresholdLimits? users = null, ThresholdLimits? polls = null) =>
         new(
             db,
             _email,
             Options.Create(new ThresholdOptions
             {
-                AdminEmail = adminEmail,
                 Users = users ?? new ThresholdLimits(int.MaxValue, int.MaxValue),
                 Polls = polls ?? new ThresholdLimits(int.MaxValue, int.MaxValue),
             }),
+            Options.Create(new EmailApiOptions { To = To }),
             TimeProvider.System,
             NullLogger<ThresholdGuard>.Instance);
 }

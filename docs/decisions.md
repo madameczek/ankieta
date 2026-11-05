@@ -50,10 +50,10 @@ Changes from the spec: `order` becomes `sort_order` (`ORDER` is a reserved word)
 - **D14 Thresholds are checked on create.** Before inserting a user or poll, the app counts **all** rows, soft-deleted ones included.
   - Warning: 2000 users / 3000 polls. The app emails the admin once through the mail API (D17) and records it in `threshold_warnings`.
   - Lockout: 3000 users / 5000 polls. Create returns a `ProblemDetails` error.
-  - Limits and the admin email are set in config. A race between count and insert is acceptable for a demo.
+  - Limits are set in config; the recipient is `EmailApi:To` (D17). A race between count and insert is acceptable for a demo.
 - **D15 Rate limiting.** The built-in ASP.NET RateLimiter uses a fixed window per client IP, read from forwarded headers, or from a configured header (`RateLimiting:ClientIpHeader`) when an edge proxy in front of the gateway sends the real client IP. A stricter policy applies to every create endpoint (users, polls, questions, participants). Values are set in config.
 - **D16 Logging uses Serilog to Graylog (GELF)**, in every environment, development included. GELF over UDP; the sink is off while `Graylog:Address` is empty. Each event carries `Environment` and `AppName` (`Polls-API`); the GELF host is the machine (pod) name. Console output is on in every environment too (`kubectl logs`, fallback). A bootstrap logger covers startup errors. Request log: one line per request, health probes hidden unless they fail, 5xx as Error.
-- **D17 Email goes through an external HTTP mail API.** The mail API sits behind one small `IEmailSender` interface in `Infrastructure`, called with a typed `HttpClient`. The API contract is still open, so for now `IEmailSender` is **stubbed**: a stub implementation logs the message (to, subject, body) instead of sending it, in all environments, until the contract is known.
+- **D17 Email goes through an external HTTP mail API.** The mail API sits behind one small `IEmailSender` interface in `Common/Email`, called with a named `HttpClient` (`EmailApi:TimeoutSeconds`, must be > 0). `HttpEmailSender` POSTs JSON (`DirectAddress`, `From`, `Subject`, `Content` as HTML, `Signature`) to `EmailApi:Url` with the key in the `x-api-key` header. The subject gets the prefix `[EmailApi:SubjectTag] ` (empty: `Graylog:AppName`; both empty: no prefix). Unless `EmailApi:Url` is an absolute http(s) URL, `EmailApi:ApiKey` is set (trimmed) and `EmailApi:From` and `EmailApi:To` are valid addresses (the mail API answers 400 otherwise), a logging stub is used instead, chosen once at startup with one error log. The send runs inline in the create request (adds up to the timeout). A failed or timed-out send is logged and does not fail the create; the threshold warning is still recorded.
 
 ## Frontend
 
@@ -93,7 +93,7 @@ Changes from the spec: `order` becomes `sort_order` (`ORDER` is a reserved word)
 
 ## Development
 
-- **D36 Local development uses a shared SQL Server** (there is no local DB container). The connection string, with its credentials, lives in **user secrets**; `appsettings.Development.json` holds only non-secret settings and is committed. Angular `ng serve` proxies `/api` to the local API (same origin, as in prod).
+- **D36 Local development uses a shared SQL Server** (there is no local DB container). The connection string, with its credentials, lives in **user secrets**; `appsettings.Development.json` holds only non-secret settings and is committed. `appsettings.json` marks secret keys with the placeholder `from-secrets` (connection string, `EmailApi` URL, key, sender and recipient). Angular `ng serve` proxies `/api` to the local API (same origin, as in prod).
 
 ## Operations
 
@@ -122,6 +122,5 @@ Changes from the spec: `order` becomes `sort_order` (`ORDER` is a reserved word)
 ## Open items
 
 - [ ] Rate-limit numbers (D15): defaults per client IP are 300 requests/min overall and 10 creates/min; confirm or change
-- [ ] Mail API request contract (D17)
 - [ ] docker-desktop overlay: how traffic is routed (D19, D20) and which SQL Server it uses
 - [ ] Environment values (hosts, credentials, routing): tracked in the local-only files named at the top

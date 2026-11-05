@@ -16,6 +16,7 @@ internal sealed class ThresholdGuard(
     PollsDbContext db,
     IEmailSender emailSender,
     IOptions<ThresholdOptions> options,
+    IOptions<EmailApiOptions> emailOptions,
     TimeProvider timeProvider,
     ILogger<ThresholdGuard> logger) : IHandler
 {
@@ -54,19 +55,20 @@ internal sealed class ThresholdGuard(
 
         logger.LogWarning("Warning threshold reached for {Resource}: {Count} of {Warning}", resource, count, limits.Warning);
 
-        var adminEmail = options.Value.AdminEmail;
-        if (string.IsNullOrWhiteSpace(adminEmail))
-        {
-            logger.LogWarning("Thresholds:AdminEmail is not set; no warning email sent");
-        }
-        else
+        // Invalid EmailApi settings select the logging stub at startup (D17), so no address checks here.
+        try
         {
             await emailSender.SendAsync(
                 new EmailMessage(
-                    adminEmail,
+                    emailOptions.Value.To,
                     $"Polls: {resource} warning threshold reached",
                     $"{resource}: {count + 1} rows after this insert. Warning at {limits.Warning}, creation blocked at {limits.Lockout}."),
                 cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException { InnerException: TimeoutException })
+        {
+            // The create must not fail because of the mail API; the warning is still recorded, so it is not retried on every insert.
+            logger.LogError(ex, "Threshold warning email for {Resource} not sent", resource);
         }
 
         db.ThresholdWarnings.Add(new ThresholdWarning { Resource = resource, SentAt = timeProvider.GetUtcNow().UtcDateTime });

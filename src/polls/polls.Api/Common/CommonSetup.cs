@@ -26,7 +26,7 @@ internal static class CommonSetup
         services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new UtcDateTimeConverter()));
         services.AddHealthChecks();
         services.AddPollsRateLimiting(configuration);
-        services.AddSingleton<IEmailSender, LoggingEmailSender>();
+        services.AddPollsEmail(configuration);
         services.AddValidatorsFromAssemblyContaining<Marker>(includeInternalTypes: true);
         services.RegisterHandlersFromAssemblyContaining<Marker>();
         services.RegisterApiEndpointsFromAssemblyContaining<Marker>();
@@ -36,6 +36,7 @@ internal static class CommonSetup
 
     public static WebApplication UsePollsCommon(this WebApplication app)
     {
+        app.LogEmailSender();
         app.UseForwardedHeaders();
         app.UseExceptionHandler();
         app.UseStatusCodePages();

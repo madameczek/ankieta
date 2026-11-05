@@ -1,6 +1,6 @@
 namespace Polls.Api.Common.Email;
 
-/// <summary>Stub (D17): logs the message instead of sending it, in every environment, until the mail API contract is known.</summary>
+/// <summary>Stub (D17): logs the message instead of sending it while the <c>EmailApi</c> settings are invalid (local runs, tests).</summary>
 internal sealed class LoggingEmailSender(ILogger<LoggingEmailSender> logger) : IEmailSender
 {
     public Task SendAsync(EmailMessage message, CancellationToken cancellationToken)
