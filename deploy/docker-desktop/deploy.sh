@@ -20,6 +20,12 @@ if [[ "${1:-}" != "--no-build" ]]; then
   "$here/../build.sh"
 fi
 
+# The manifests never create the namespace (D55); on the local cluster the script does
+if ! kc get namespace "$namespace" >/dev/null 2>&1; then
+  echo "Namespace $namespace not found in $context – creating it."
+  kc create namespace "$namespace"
+fi
+
 kc apply -k "$here"
 # Every build reuses the :dev tag, so apply alone would keep the old image running
 kc -n "$namespace" rollout restart deploy/polls-api deploy/polls-web

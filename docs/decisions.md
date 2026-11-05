@@ -120,6 +120,7 @@ Changes from the spec: `order` becomes `sort_order` (`ORDER` is a reserved word)
 - **D50 "My polls" uses Material list rows** (`mat-nav-list`).
 - **D51 "Become user" switches immediately**, without confirmation; a snackbar names the new user.
 - **D54 Docker Desktop overlay.** No gateway: the overlay mounts an nginx config into polls-web that also proxies `/api` to polls-api (D19), exposed as NodePort 30090 on localhost. Plain http, so `Session:SecureCookie` is off. Images are the local `:dev` builds (no pull secret). The API uses the shared SQL Server (D36); its Secret comes from a never-committed `secrets.env` next to the overlay. `deploy/docker-desktop/deploy.sh` builds, applies with the `docker-desktop` context fixed and restarts the pods.
+- **D55 The namespace is not part of the manifests.** Overlays target `polls-pkp`, but no manifest creates it: it is managed outside the app (like the pull secret, D53), must exist before `apply -k`, and `delete -k` never removes it. Deploy steps check it first; the Docker Desktop script creates it when missing.
 
 ## Open items
 

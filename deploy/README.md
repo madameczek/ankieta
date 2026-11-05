@@ -10,7 +10,7 @@ Same origin, so no CORS and the session cookie just works. Decisions: `docs/deci
 | `polls-api.Dockerfile` (+ `.dockerignore`) | API image, build context `src/polls` |
 | `polls-web.Dockerfile` (+ `.dockerignore`), `nginx.conf` | SPA image, build context `src/polls-angular`, `deploy/` as named context `deploy` |
 | `build.sh` | builds both images; with a registry also tags and pushes |
-| `kube/` | shared kustomize base: namespace `polls-pkp`, Deployments, Services (no route) |
+| `kube/` | shared kustomize base: Deployments, Services (no route) for namespace `polls-pkp`; the namespace itself is not created (D55) |
 | `docker-desktop/` | overlay for Docker Desktop Kubernetes and its `deploy.sh` (see below, D54) |
 
 Other environment overlays are kept outside the repository. An overlay must provide:
@@ -28,7 +28,9 @@ Other environment overlays are kept outside the repository. An overlay must prov
    | `EmailApi__To` | recipient of the threshold warning (D14) |
 
    Optional overrides use the same `Section__Key` form, e.g. `RateLimiting__Create__PermitLimit`.
-4. **Pull secret `ghcr-pull`** (type `kubernetes.io/dockerconfigjson`) must exist in the namespace; the base Deployments
+4. **Namespace `polls-pkp`** must already exist – the manifests only target it, they never create or delete it (D55),
+   so `kubectl delete -k <overlay>` removes the app but keeps the namespace and its pull secret.
+5. **Pull secret `ghcr-pull`** (type `kubernetes.io/dockerconfigjson`) must exist in the namespace; the base Deployments
    reference it. It is managed outside these manifests (one per namespace) and rotated in place – no re-apply needed (D53).
 
 ## Steps
@@ -36,9 +38,11 @@ Other environment overlays are kept outside the repository. An overlay must prov
 1. **Schema** (only when `db/migrations.sql` changed), with the DDL login – see `docs/database.md`:
    `sqlcmd -I -S <server> -d <database> -U <ddl-login> -i src/polls/db/migrations.sql`
 2. **Images**: `deploy/build.sh <registry> <tag>` (from the repo root; Docker with BuildKit).
-3. **Render and check**: `kubectl kustomize <overlay>`
-4. **Apply**: `kubectl --context <context> apply -k <overlay>`
-5. **Verify**: `kubectl -n polls-pkp get pods` (both `Running`, ready `1/1`); `curl https://<host>/api/health/ready` → `Healthy`.
+3. **Check the namespace** (and its pull secret) before applying – apply fails with `namespaces "polls-pkp" not found` otherwise:
+   `kubectl --context <context> get namespace polls-pkp` and `kubectl --context <context> -n polls-pkp get secret ghcr-pull`
+4. **Render and check**: `kubectl kustomize <overlay>`
+5. **Apply**: `kubectl --context <context> apply -k <overlay>`
+6. **Verify**: `kubectl -n polls-pkp get pods` (both `Running`, ready `1/1`); `curl https://<host>/api/health/ready` → `Healthy`.
 
 ## Docker Desktop (local Kubernetes)
 
@@ -46,6 +50,7 @@ Other environment overlays are kept outside the repository. An overlay must prov
 2. `cp deploy/docker-desktop/secrets.env.example deploy/docker-desktop/secrets.env` and fill it in (never committed).
 3. `deploy/docker-desktop/deploy.sh` – builds `polls-api:dev` / `polls-web:dev`, applies the overlay with
    `--context docker-desktop` (never the current context) and restarts the pods, since every build reuses the `:dev` tag.
+   It creates the `polls-pkp` namespace when missing (local cluster only; nothing else manages it there).
    `--no-build` skips the image build.
 4. Open http://localhost:30090 (NodePort). `/api` is proxied by the web pod's nginx; there is no gateway.
 
