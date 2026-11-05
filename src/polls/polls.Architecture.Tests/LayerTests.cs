@@ -7,6 +7,8 @@ namespace Polls.Architecture.Tests;
 
 public sealed class LayerTests
 {
+    private const string Migrations = "Polls.Api.Infrastructure.Migrations";
+
     private static Types ApiTypes => Types.InAssembly(typeof(Error).Assembly);
 
     [Fact]
@@ -42,6 +44,7 @@ public sealed class LayerTests
             .That().AreClasses().And().AreNotAbstract()
             .And().DoNotHaveCustomAttribute(typeof(CompilerGeneratedAttribute))
             .And().DoNotHaveName("Program")
+            .And().DoNotResideInNamespace(Migrations)
             .Should().BeSealed()
             .GetResult();
 
@@ -49,12 +52,13 @@ public sealed class LayerTests
     }
 
     [Fact]
-    public void Types_AreInternal_ExceptProgram()
+    public void Types_AreInternal_ExceptProgramAndGeneratedMigrations()
     {
         var result = ApiTypes
             .That().AreNotNested()
             .And().DoNotHaveCustomAttribute(typeof(CompilerGeneratedAttribute))
             .And().DoNotHaveName("Program")
+            .And().DoNotResideInNamespace(Migrations)
             .ShouldNot().BePublic()
             .GetResult();
 

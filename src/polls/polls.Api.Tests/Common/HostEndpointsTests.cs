@@ -4,8 +4,10 @@ using Polls.Tests.Common;
 
 namespace Polls.Api.Tests.Common;
 
-public sealed class HostEndpointsTests(PollsApiFactory factory) : IClassFixture<PollsApiFactory>
+public sealed class HostEndpointsTests(SqlServerFixture database) : IAsyncDisposable
 {
+    private readonly PollsApiFactory _factory = new(database.ConnectionString);
+
     [Theory]
     [InlineData("/api/health/live")]
     [InlineData("/api/health/ready")]
@@ -13,7 +15,7 @@ public sealed class HostEndpointsTests(PollsApiFactory factory) : IClassFixture<
     [InlineData("/api/docs")]
     public async Task Get_HostEndpoint_ReturnsOk(string path)
     {
-        using var client = factory.CreateClient();
+        using var client = _factory.CreateClient();
 
         using var response = await client.GetAsync(path, TestContext.Current.CancellationToken);
 
@@ -23,11 +25,13 @@ public sealed class HostEndpointsTests(PollsApiFactory factory) : IClassFixture<
     [Fact]
     public async Task Get_UnknownRoute_ReturnsProblemDetails()
     {
-        using var client = factory.CreateClient();
+        using var client = _factory.CreateClient();
 
         using var response = await client.GetAsync("/api/does-not-exist", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
     }
+
+    public ValueTask DisposeAsync() => _factory.DisposeAsync();
 }

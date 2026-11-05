@@ -127,3 +127,7 @@ dotnet_naming_rule.private_fields_underscore.severity = warning
 # Test projects: underscores in names are expected ([Method]_[Scenario]_[ExpectedResult])
 [**/*.Tests/**/*.cs]
 dotnet_diagnostic.CA1707.severity = none
+
+# EF Core migrations are generated code: no style analysis
+[**/Migrations/*.cs]
+generated_code = true

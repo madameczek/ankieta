@@ -29,7 +29,7 @@ Environment-specific infrastructure (hosts, addresses, credentials, cluster rout
 
 - **D12 EF Core code-first.** The DbContext is used directly in handlers, without a repository or other abstraction over EF.
 - **D52 The EF model uses the Fluent API only**, no data annotations on entities. `OnModelCreating` calls `ApplyConfigurationsFromAssembly`, with one sealed `IEntityTypeConfiguration<T>` per entity in its module's `Infrastructure` folder. Max lengths shared by EF and validators come from constants in the module's `Domain` (e.g. `PollLimits.TitleMaxLength`). Validators check commands; EF config defines the schema.
-- **D13 Migrations are applied manually.** `dotnet ef migrations script --idempotent` is committed to the repo, reviewed and run against the target SQL Server. This script is also the schema-proof artifact. The app's DB login has DML rights only.
+- **D13 Migrations are applied manually.** `dotnet ef migrations script --idempotent`, committed as `src/polls/db/migrations.sql`, reviewed and run against the target SQL Server. This script is also the schema-proof artifact. Commands: `docs/database.md`. The app's DB login has DML rights only.
 
 ### Schema (target)
 
