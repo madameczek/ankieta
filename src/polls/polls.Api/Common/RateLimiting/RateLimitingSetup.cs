@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
@@ -27,7 +28,8 @@ internal sealed class RateLimitSettings
 
     /// <summary>
     /// Optional request header with the real client IP, set by an edge proxy in front of the gateway.
-    /// Empty: use the address resolved from <c>X-Forwarded-For</c>.
+    /// Used only when it holds a valid IP; the edge must overwrite it (clients that bypass the edge can send it).
+    /// Empty, missing or not an IP: use the address resolved from <c>X-Forwarded-For</c>.
     /// </summary>
     public string ClientIpHeader { get; init; } = "";
 }
@@ -81,11 +83,11 @@ internal static class RateLimitingSetup
 
     private static string ClientIp(HttpContext http, RateLimitSettings settings)
     {
+        // Only a single valid IP: arbitrary values would let a client pick a fresh partition per request.
         if (settings.ClientIpHeader.Length > 0
-            && http.Request.Headers.TryGetValue(settings.ClientIpHeader, out var header)
-            && !string.IsNullOrWhiteSpace(header.ToString()))
+            && IPAddress.TryParse(http.Request.Headers[settings.ClientIpHeader].ToString().Trim(), out var ip))
         {
-            return header.ToString().Trim();
+            return ip.ToString();
         }
 
         return http.Connection.RemoteIpAddress?.ToString() ?? "unknown";

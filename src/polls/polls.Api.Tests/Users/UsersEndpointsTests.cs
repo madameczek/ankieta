@@ -113,12 +113,23 @@ public sealed class UsersEndpointsTests(SqlServerFixture database) : IAsyncDispo
         other.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
-    private static async Task<HttpResponseMessage> PostUserFromAsync(HttpClient client, string clientIp)
+    [Fact]
+    public async Task Post_ClientIpHeaderMissingOrNotIp_FallsBackToConnectionAddress()
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/users");
-        request.Content = JsonContent.Create(new { name = TestData.Unique("user") });
-        request.Headers.Add("X-Client-Ip", clientIp);
-        return await client.SendAsync(request, Ct);
+        await using var limited = new PollsApiFactory(database.ConnectionString, new Dictionary<string, string?>
+        {
+            ["RateLimiting:Create:PermitLimit"] = "1",
+            ["RateLimiting:ClientIpHeader"] = "X-Client-Ip",
+        });
+        using var client = limited.CreateClient();
+
+        using var notIp = await PostUserFromAsync(client, "not-an-ip");
+        using var missing = await PostUserFromAsync(client, clientIp: null);
+        using var validIp = await PostUserFromAsync(client, "203.0.113.1");
+
+        notIp.StatusCode.Should().Be(HttpStatusCode.Created);
+        missing.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        validIp.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
     [Fact]
@@ -171,5 +182,17 @@ public sealed class UsersEndpointsTests(SqlServerFixture database) : IAsyncDispo
         var (problemCode, errors) = await response.ReadValidationProblemAsync(Ct);
         problemCode.Should().Be("validation.failed");
         errors.Should().ContainKey(field).WhoseValue.Should().Equal(code);
+    }
+
+    private static async Task<HttpResponseMessage> PostUserFromAsync(HttpClient client, string? clientIp)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/users");
+        request.Content = JsonContent.Create(new { name = TestData.Unique("user") });
+        if (clientIp is not null)
+        {
+            request.Headers.Add("X-Client-Ip", clientIp);
+        }
+
+        return await client.SendAsync(request, Ct);
     }
 }
