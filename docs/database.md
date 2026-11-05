@@ -4,6 +4,9 @@ The schema is defined by EF Core code-first (Fluent API, D12, D52). Migrations l
 `src/polls/polls.Api/Infrastructure/Migrations/`. The idempotent SQL script `src/polls/db/migrations.sql`
 is generated from them and committed. It is what gets run against the database (D13) and what the tests apply.
 
+Diagram of the tables and relations: [db-schema.svg](db-schema.svg), text version in [db-schema.md](db-schema.md).
+Update both when the model changes.
+
 All commands run in `src/polls`.
 
 ## One-time setup
