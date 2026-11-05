@@ -1,0 +1,96 @@
+<section>
+  <h2>Ankieta</h2>
+  <form (submit)="$event.preventDefault(); savePoll()">
+    <mat-form-field class="full-width">
+      <mat-label>Tytuł</mat-label>
+      <input
+        matInput
+        required
+        [attr.maxlength]="limits.title"
+        [value]="title()"
+        (input)="title.set($any($event.target).value)"
+        autocomplete="off"
+      />
+    </mat-form-field>
+    <mat-form-field class="full-width">
+      <mat-label>Opis</mat-label>
+      <textarea
+        matInput
+        rows="3"
+        [attr.maxlength]="limits.description"
+        [value]="description()"
+        (input)="description.set($any($event.target).value)"
+      ></textarea>
+    </mat-form-field>
+    @if (pollError(); as message) {
+      <p class="error-text" role="alert">{{ message }}</p>
+    }
+    <button mat-flat-button type="submit" [disabled]="busy() || !title().trim()">Zapisz</button>
+  </form>
+</section>
+
+<section>
+  <h2>Pytania</h2>
+  @if (questionError(); as message) {
+    <p class="error-text" role="alert">{{ message }}</p>
+  }
+
+  <ol class="questions" cdkDropList [cdkDropListData]="questions()" (cdkDropListDropped)="drop($event)">
+    @for (question of questions(); track question.id) {
+      <li class="question" cdkDrag [cdkDragDisabled]="editingId() !== null">
+        <mat-icon class="handle" cdkDragHandle aria-hidden="true">drag_indicator</mat-icon>
+        @if (editingId() === question.id) {
+          <div class="edit">
+            <mat-form-field class="full-width" subscriptSizing="dynamic">
+              <mat-label>Treść pytania</mat-label>
+              <textarea
+                matInput
+                rows="2"
+                [attr.maxlength]="limits.question"
+                [value]="editText()"
+                (input)="editText.set($any($event.target).value)"
+              ></textarea>
+            </mat-form-field>
+            <div class="row-actions">
+              <button mat-button (click)="editingId.set(null)">Anuluj</button>
+              <button mat-flat-button (click)="saveEdit(question)" [disabled]="busy() || !editText().trim()">Zapisz</button>
+            </div>
+          </div>
+        } @else {
+          <span class="text">{{ question.question }}</span>
+          <button mat-icon-button (click)="startEdit(question)" aria-label="Edytuj pytanie">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button (click)="deleteQuestion(question)" aria-label="Usuń pytanie">
+            <mat-icon>delete</mat-icon>
+          </button>
+        }
+      </li>
+    } @empty {
+      <p class="empty-state">Ankieta nie ma jeszcze pytań.</p>
+    }
+  </ol>
+
+  <form class="add" (submit)="$event.preventDefault(); addQuestion()">
+    <mat-form-field class="full-width" subscriptSizing="dynamic">
+      <mat-label>Nowe pytanie</mat-label>
+      <textarea
+        matInput
+        rows="2"
+        [attr.maxlength]="limits.question"
+        [value]="newQuestion()"
+        (input)="newQuestion.set($any($event.target).value)"
+      ></textarea>
+    </mat-form-field>
+    <button mat-stroked-button type="submit" [disabled]="busy() || !newQuestion().trim()">
+      <mat-icon>add</mat-icon>
+      Dodaj pytanie
+    </button>
+  </form>
+</section>
+
+<section class="danger-zone">
+  <h2>Usuwanie</h2>
+  <p class="muted">Ankieta zniknie dla wszystkich uczestników.</p>
+  <button mat-flat-button class="danger" (click)="deletePoll()" [disabled]="busy()">Usuń ankietę</button>
+</section>
