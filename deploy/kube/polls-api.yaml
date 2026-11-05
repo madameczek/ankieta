@@ -1,0 +1,85 @@
+# ASP.NET Core API. One replica (D38): the rate limiter is in-memory; Data Protection keys are in the DB (D22).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: polls-api
+  labels:
+    app.kubernetes.io/name: polls-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: polls-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: polls-api
+    spec:
+      automountServiceAccountToken: false
+      # Created and rotated per namespace outside these manifests (D53)
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: polls-api
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: polls-api-config
+            # ConnectionStrings__Polls, Graylog__*, EmailApi__*, optional overrides (deploy/README.md)
+            - secretRef:
+                name: polls-api-secrets
+          startupProbe:
+            httpGet:
+              path: /api/health/live
+              port: http
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /api/health/live
+              port: http
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/health/ready # includes the DB check
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: polls-api
+  labels:
+    app.kubernetes.io/name: polls-api
+spec:
+  selector:
+    app.kubernetes.io/name: polls-api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

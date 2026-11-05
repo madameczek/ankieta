@@ -1,0 +1,21 @@
+# Shared base (D21): Deployments + Services only. Each environment overlay adds its route into the cluster (D19, D20),
+# the image registry/tag (images:) and the Secret "polls-api-secrets" (keys: see deploy/README.md).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: polls-pkp
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: polls
+    includeSelectors: false
+
+resources:
+  - namespace.yaml
+  - polls-api.yaml
+  - polls-web.yaml
+
+configMapGenerator:
+  - name: polls-api-config
+    literals:
+      - ASPNETCORE_ENVIRONMENT=Production

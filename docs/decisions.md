@@ -6,7 +6,7 @@ Environment-specific infrastructure (hosts, addresses, credentials, cluster rout
 
 ## Domain and naming
 
-- **D1 Naming.** "pool" in the spec means *poll* (ankieta). Code, DB, routes and folders use `poll`/`polls`. The k8s namespace stays `ankieta`.
+- **D1 Naming.** "pool" in the spec means *poll* (ankieta). Code, DB, routes and folders use `poll`/`polls`. The k8s namespace is `polls-pkp` (changed from the spec's `ankieta`).
 - **D2 Answers are free text only.** No question types or choice options.
 - **D3 One answer per user per question.** `answers.id_user` FK → `users.id`, `UNIQUE(id_question, id_user)`. The app checks that the user is assigned to the poll.
 - **D4 Ownership lives in `user_poll.is_owner`.** There is no `polls.owned_by`. A filtered unique index allows exactly one owner per poll. The app creates the poll and its owner row in one transaction.
@@ -63,8 +63,9 @@ Changes from the spec: `order` becomes `sort_order` (`ORDER` is a reserved word)
 
 - **D19 One host, path routing.** `/` goes to the Angular nginx and `/api` to the API. Same origin, so no CORS.
 - **D20 Routing into the cluster is defined per environment overlay.** The base manifests contain only Deployments and Services; each overlay adds its own route or ingress to implement D19.
-- **D21 Plain YAML + kustomize.** `deploy/<app>.Dockerfile` per image (`polls-api`, `polls-web`), a shared base (e.g. `deploy/kube/`), and the `deploy/docker-desktop/` overlay for local Kubernetes. Entry point `deploy/README.md`. Other environment overlays are not in the repo. Secrets (connection string, mail API credentials, Data Protection keys) are never committed.
-- **D22 Data Protection keys must be shared** across API replicas, stored in the DB or a k8s secret, so cookies survive restarts.
+- **D21 Plain YAML + kustomize** (details: `deploy/README.md`). Images run as non-root with a read-only root filesystem; the web image is unprivileged nginx on port 8080. `deploy/<app>.Dockerfile` per image (`polls-api`, `polls-web`), a shared base (e.g. `deploy/kube/`), and the `deploy/docker-desktop/` overlay for local Kubernetes. Entry point `deploy/README.md`. Other environment overlays are not in the repo. Secrets (connection string, mail API credentials, Data Protection keys) are never committed.
+- **D53 Registry pull credentials are not part of the app's manifests.** The base Deployments reference the pull secret `ghcr-pull` (`imagePullSecrets`) in every environment; the secret is created per namespace and rotated in place by the environment's own tooling, so rotation never requires re-applying the app.
+- **D22 Data Protection keys are stored in the DB** (table `data_protection_keys`), so cookies survive restarts and are shared by replicas. They are not encrypted at rest (startup warning "No XML encryptor configured"): accepted, because a forged cookie only selects a user, which anyone can do in this app by design (D10).
 
 ## Backend layout
 
@@ -122,5 +123,5 @@ Changes from the spec: `order` becomes `sort_order` (`ORDER` is a reserved word)
 ## Open items
 
 - [ ] Rate-limit numbers (D15): defaults per client IP are 300 requests/min overall and 10 creates/min; confirm or change
-- [ ] docker-desktop overlay: how traffic is routed (D19, D20) and which SQL Server it uses
 - [ ] Environment values (hosts, credentials, routing): tracked in the local-only files named at the top
+- [ ] docker-desktop overlay: how traffic is routed (D19, D20) and which SQL Server it uses
