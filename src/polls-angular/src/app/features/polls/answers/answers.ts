@@ -9,9 +9,9 @@ import { AnswerItem } from './answer-item';
   imports: [AnswerItem],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (poll.detail.hasValue()) {
-      @for (question of poll.detail.value().questions; track question.id; let i = $index) {
-        <app-answer-item [pollId]="poll.pollId()" [question]="question" [index]="i + 1" />
+    @if (poll.current(); as current) {
+      @for (question of current.questions; track question.id; let i = $index) {
+        <app-answer-item [question]="question" [index]="i + 1" />
       } @empty {
         <p class="empty-state">
           {{ poll.isOwner() ? 'Dodaj pytania w zakładce „Edycja”.' : 'Właściciel nie dodał jeszcze pytań.' }}

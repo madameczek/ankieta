@@ -8,14 +8,13 @@ import { MatListModule } from '@angular/material/list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router, RouterLink } from '@angular/router';
 import { PollListItem } from '../../core/api/api.models';
-import { toApiError } from '../../core/api/api-error';
-import { messageFor } from '../../core/api/error-messages';
+import { LoadError } from '../../shared/load-error';
 import { CreatePollDialog } from './create-poll-dialog';
 
 /** D35/D50: owned and participating polls in one list, newest change first. */
 @Component({
   selector: 'app-poll-list',
-  imports: [DatePipe, RouterLink, MatButtonModule, MatIconModule, MatListModule, MatProgressBarModule],
+  imports: [DatePipe, RouterLink, MatButtonModule, MatIconModule, MatListModule, MatProgressBarModule, LoadError],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="page-header">
@@ -31,7 +30,7 @@ import { CreatePollDialog } from './create-poll-dialog';
     }
 
     @if (polls.error()) {
-      <p class="error-text" role="alert">{{ errorMessage() }}</p>
+      <app-load-error [error]="polls.error()" (retry)="polls.reload()" />
     } @else if (polls.hasValue() && polls.value().length === 0) {
       <div class="empty-state">
         <p>Nie uczestniczysz jeszcze w żadnej ankiecie.</p>
@@ -59,10 +58,6 @@ export class PollList {
   private readonly router = inject(Router);
 
   protected readonly polls = httpResource<PollListItem[]>(() => '/api/polls');
-
-  protected errorMessage(): string {
-    return messageFor(toApiError(this.polls.error()).code);
-  }
 
   protected createPoll(): void {
     this.dialog

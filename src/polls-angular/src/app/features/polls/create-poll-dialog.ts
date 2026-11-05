@@ -6,7 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { firstValueFrom } from 'rxjs';
 import { Created, Limits } from '../../core/api/api.models';
-import { ApiError, toApiError } from '../../core/api/api-error';
+import { ApiError, isScreenError, toApiError } from '../../core/api/api-error';
 import { messageFor } from '../../core/api/error-messages';
 
 /** Creates a poll owned by the current user. Closes with the new poll id. */
@@ -70,7 +70,11 @@ export class CreatePollDialog {
       );
       this.dialogRef.close(created.id);
     } catch (e) {
-      this.error.set(firstMessage(toApiError(e)));
+      const error = toApiError(e);
+      // 400 fields, 503 limit.polls_reached; 429/5xx/network are shown by the interceptor
+      if (isScreenError(error)) {
+        this.error.set(firstMessage(error));
+      }
     } finally {
       this.saving.set(false);
     }

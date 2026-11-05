@@ -17,6 +17,14 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Statuses a screen shows itself; all others (401, 403, 429, 5xx except 503, network) are already shown by
+ * the interceptor, so a screen must not repeat them.
+ */
+export function isScreenError(error: ApiError): boolean {
+  return [400, 404, 409, 503].includes(error.status);
+}
+
 export const NetworkErrorCode = 'network.error';
 export const ServerErrorCode = 'server.error';
 

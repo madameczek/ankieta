@@ -4,7 +4,7 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { Limits, User } from '../../core/api/api.models';
-import { toApiError } from '../../core/api/api-error';
+import { isScreenError, toApiError } from '../../core/api/api-error';
 import { messageFor } from '../../core/api/error-messages';
 import { SessionStore } from '../../core/session/session.store';
 
@@ -62,11 +62,14 @@ export class CreateUserDialog {
       this.dialogRef.close(await this.session.createUser(this.name().trim()));
     } catch (e) {
       const error = toApiError(e);
+      if (!isScreenError(error)) {
+        return; // 429/5xx/network: shown by the interceptor
+      }
       const field = error.fieldCode('name');
       if (field || error.code === 'user.name_taken') {
         this.fieldError.set(messageFor(field ?? error.code));
       } else {
-        // e.g. limit.users_reached (503); 429/5xx are also shown by the interceptor
+        // e.g. limit.users_reached (503)
         this.formError.set(messageFor(error.code));
       }
     } finally {

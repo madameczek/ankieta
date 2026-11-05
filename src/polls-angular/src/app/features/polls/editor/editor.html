@@ -1,3 +1,6 @@
+@if (!poll.isOwner()) {
+  <app-owner-only />
+} @else {
 <section>
   <h2>Ankieta</h2>
   <form (submit)="$event.preventDefault(); savePoll()">
@@ -35,7 +38,16 @@
     <p class="error-text" role="alert">{{ message }}</p>
   }
 
-  <ol class="questions" cdkDropList [cdkDropListData]="questions()" (cdkDropListDropped)="drop($event)">
+  @if (questions().length === 0) {
+    <p class="empty-state">Ankieta nie ma jeszcze pytań.</p>
+  }
+  <ol
+    class="questions"
+    cdkDropList
+    [cdkDropListData]="questions()"
+    [cdkDropListDisabled]="busy()"
+    (cdkDropListDropped)="drop($event)"
+  >
     @for (question of questions(); track question.id) {
       <li class="question" cdkDrag [cdkDragDisabled]="editingId() !== null">
         <mat-icon class="handle" cdkDragHandle aria-hidden="true">drag_indicator</mat-icon>
@@ -66,8 +78,6 @@
           </button>
         }
       </li>
-    } @empty {
-      <p class="empty-state">Ankieta nie ma jeszcze pytań.</p>
     }
   </ol>
 
@@ -94,3 +104,4 @@
   <p class="muted">Ankieta zniknie dla wszystkich uczestników.</p>
   <button mat-flat-button class="danger" (click)="deletePoll()" [disabled]="busy()">Usuń ankietę</button>
 </section>
+}

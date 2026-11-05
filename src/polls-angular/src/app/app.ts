@@ -60,7 +60,12 @@ export class App {
   private readonly router = inject(Router);
 
   protected async leave(): Promise<void> {
-    await this.session.leave();
+    try {
+      await this.session.leave();
+    } catch {
+      // the interceptor showed the error; leave locally anyway (the cookie expires or is replaced later)
+      this.session.clear();
+    }
     await this.router.navigate(['/users']);
   }
 }

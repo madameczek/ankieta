@@ -84,6 +84,7 @@ export interface PollResults {
 /** Lengths enforced by the API (the same limits as the database). */
 export const Limits = {
   userName: 100,
+  search: 100,
   title: 200,
   description: 2000,
   question: 1000,

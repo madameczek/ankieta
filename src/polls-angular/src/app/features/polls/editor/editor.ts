@@ -1,6 +1,6 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, linkedSignal, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, linkedSignal, signal, untracked } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,16 +9,17 @@ import { MatInputModule } from '@angular/material/input';
 import { Router } from '@angular/router';
 import { Observable, firstValueFrom } from 'rxjs';
 import { Limits, PollQuestion } from '../../../core/api/api.models';
-import { toApiError } from '../../../core/api/api-error';
+import { isScreenError, toApiError } from '../../../core/api/api-error';
 import { Notifier } from '../../../core/notifier';
 import { confirm } from '../../../shared/confirm-dialog';
 import { firstMessage } from '../create-poll-dialog';
+import { OwnerOnly } from '../owner-only';
 import { PollContext } from '../poll-context';
 
 /** Owner only (D26): poll fields, questions (add, edit, drag & drop order, delete) and deleting the poll. */
 @Component({
   selector: 'app-editor',
-  imports: [CdkDropList, CdkDrag, CdkDragHandle, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule],
+  imports: [CdkDropList, CdkDrag, CdkDragHandle, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, OwnerOnly],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './editor.html',
   styleUrl: './editor.scss',
@@ -32,17 +33,19 @@ export class Editor {
 
   protected readonly limits = Limits;
 
-  // Poll fields, reset whenever the poll reloads
-  protected readonly title = linkedSignal(() => (this.poll.detail.hasValue() ? this.poll.detail.value().title : ''));
-  protected readonly description = linkedSignal(() =>
-    this.poll.detail.hasValue() ? (this.poll.detail.value().description ?? '') : '',
-  );
+  // Poll fields: reset only when another poll loads, not on every reload after a question change (unsaved input stays)
+  protected readonly title = linkedSignal({
+    source: () => this.poll.current()?.id,
+    computation: () => untracked(() => this.poll.current()?.title ?? ''),
+  });
+  protected readonly description = linkedSignal({
+    source: () => this.poll.current()?.id,
+    computation: () => untracked(() => this.poll.current()?.description ?? ''),
+  });
   protected readonly pollError = signal<string | null>(null);
 
   /** Local copy, so a drop shows at once (optimistic, D9). */
-  protected readonly questions = linkedSignal<PollQuestion[]>(() =>
-    this.poll.detail.hasValue() ? [...this.poll.detail.value().questions] : [],
-  );
+  protected readonly questions = linkedSignal<PollQuestion[]>(() => [...(this.poll.current()?.questions ?? [])]);
   protected readonly editingId = signal<number | null>(null);
   protected readonly editText = signal('');
   protected readonly newQuestion = signal('');
@@ -95,20 +98,22 @@ export class Editor {
     if (event.previousIndex === event.currentIndex) {
       return;
     }
-    const reordered = [...this.questions()];
+    const previous = this.questions();
+    const reordered = [...previous];
     moveItemInArray(reordered, event.previousIndex, event.currentIndex);
     this.questions.set(reordered);
 
     const body = { questionIds: reordered.map((q) => q.id) };
     const ok = await this.run(() => this.http.put(this.poll.url('/questions/order'), body), (m) => this.notifier.info(m));
     if (!ok) {
-      // restore the server's order
+      // put the order back at once, then fetch the server's current list (it may have changed: order_mismatch)
+      this.questions.set(previous);
       this.poll.detail.reload();
     }
   }
 
   protected deletePoll(): void {
-    const title = this.poll.detail.hasValue() ? this.poll.detail.value().title : '';
+    const title = this.poll.current()?.title ?? '';
     confirm(this.dialog, {
       title: 'Usunąć ankietę?',
       message: `Ankieta „${title}” zniknie dla wszystkich uczestników.`,
@@ -138,7 +143,7 @@ export class Editor {
     } catch (e) {
       const error = toApiError(e);
       // 403/429/5xx are already shown by the interceptor
-      if (error.status === 400 || error.status === 404 || error.status === 409) {
+      if (isScreenError(error)) {
         onError(firstMessage(error));
       }
       return false;

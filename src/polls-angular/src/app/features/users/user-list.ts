@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, linkedSignal, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -12,11 +12,11 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
 import { Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
-import { Paged, User, UserListItem } from '../../core/api/api.models';
+import { Limits, Paged, User, UserListItem } from '../../core/api/api.models';
 import { toApiError } from '../../core/api/api-error';
-import { messageFor } from '../../core/api/error-messages';
 import { Notifier } from '../../core/notifier';
 import { SessionStore } from '../../core/session/session.store';
+import { LoadError } from '../../shared/load-error';
 import { CreateUserDialog } from './create-user-dialog';
 
 /** D32: user list with server-side search and paging; open to visitors. "Become user" switches at once (D51). */
@@ -31,6 +31,7 @@ import { CreateUserDialog } from './create-user-dialog';
     MatPaginatorModule,
     MatProgressBarModule,
     MatTableModule,
+    LoadError,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -45,7 +46,13 @@ import { CreateUserDialog } from './create-user-dialog';
     <mat-form-field class="full-width">
       <mat-label>Szukaj</mat-label>
       <mat-icon matPrefix>search</mat-icon>
-      <input matInput [value]="search()" (input)="onSearch($any($event.target).value)" autocomplete="off" />
+      <input
+        matInput
+        [value]="search()"
+        (input)="search.set($any($event.target).value)"
+        [attr.maxlength]="searchMaxLength"
+        autocomplete="off"
+      />
     </mat-form-field>
 
     @if (users.isLoading()) {
@@ -53,7 +60,7 @@ import { CreateUserDialog } from './create-user-dialog';
     }
 
     @if (users.error()) {
-      <p class="error-text" role="alert">{{ errorMessage() }}</p>
+      <app-load-error [error]="users.error()" (retry)="users.reload()" />
     } @else if (users.hasValue() && users.value().items.length === 0) {
       <p class="empty-state">
         {{ debouncedSearch() ? 'Brak użytkowników pasujących do wyszukiwania.' : 'Nie ma jeszcze użytkowników.' }}
@@ -106,27 +113,20 @@ export class UserList {
   private readonly notifier = inject(Notifier);
 
   protected readonly columns = ['name', 'createdAt', 'actions'];
+  protected readonly searchMaxLength = Limits.search;
   protected readonly search = signal('');
-  protected readonly page = signal(1);
   protected readonly pageSize = signal(20);
   protected readonly debouncedSearch = toSignal(
     toObservable(this.search).pipe(debounceTime(300), distinctUntilChanged()),
     { initialValue: '' },
   );
+  /** Back to page 1 when the (debounced) search changes, in the same request. */
+  protected readonly page = linkedSignal({ source: this.debouncedSearch, computation: () => 1 });
 
   protected readonly users = httpResource<Paged<UserListItem>>(() => ({
     url: '/api/users',
     params: { search: this.debouncedSearch().trim(), page: this.page(), pageSize: this.pageSize() },
   }));
-
-  protected errorMessage(): string {
-    return messageFor(toApiError(this.users.error()).code);
-  }
-
-  protected onSearch(value: string): void {
-    this.search.set(value);
-    this.page.set(1);
-  }
 
   protected onPage(event: PageEvent): void {
     this.page.set(event.pageIndex + 1);

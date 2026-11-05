@@ -4,22 +4,25 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { PollResults } from '../../../core/api/api.models';
-import { toApiError } from '../../../core/api/api-error';
-import { messageFor } from '../../../core/api/error-messages';
+import { LoadError } from '../../../shared/load-error';
+import { OwnerOnly } from '../owner-only';
 import { PollContext } from '../poll-context';
 
 /** Owner only (D33): answers per question, current participants only. */
 @Component({
   selector: 'app-results',
-  imports: [DatePipe, MatCardModule, MatProgressBarModule],
+  imports: [DatePipe, MatCardModule, MatProgressBarModule, LoadError, OwnerOnly],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (!poll.isOwner()) {
+      <app-owner-only />
+    }
     @if (results.isLoading() && !results.hasValue()) {
       <mat-progress-bar mode="indeterminate" />
     }
 
     @if (results.error()) {
-      <p class="error-text" role="alert">{{ errorMessage() }}</p>
+      <app-load-error [error]="results.error()" (retry)="results.reload()" />
     } @else if (results.hasValue()) {
       @for (question of results.value().questions; track question.id; let i = $index) {
         <mat-card appearance="outlined" class="question">
@@ -72,11 +75,8 @@ import { PollContext } from '../poll-context';
   `,
 })
 export class Results {
-  private readonly poll = inject(PollContext);
+  protected readonly poll = inject(PollContext);
 
-  protected readonly results = httpResource<PollResults>(() => this.poll.url('/results'));
-
-  protected errorMessage(): string {
-    return messageFor(toApiError(this.results.error()).code);
-  }
+  // owner only: no request for a participant who opened the URL directly
+  protected readonly results = httpResource<PollResults>(() => (this.poll.isOwner() ? this.poll.url('/results') : undefined));
 }
