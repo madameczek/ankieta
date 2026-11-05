@@ -18,7 +18,7 @@ export type SaveState = 'idle' | 'saving' | 'error';
       class="status"
       [class.error-text]="state() === 'error'"
       [class.muted]="state() !== 'error' && !showEmpty()"
-      [class.empty]="showEmpty()"
+      [class.unanswered]="showEmpty()"
       aria-live="polite"
     >
       @switch (true) {
@@ -55,10 +55,6 @@ export type SaveState = 'idle' | 'saving' | 'error';
       display: inline-flex;
       align-items: center;
       gap: 4px;
-    }
-    .empty {
-      color: var(--app-unanswered);
-      font-weight: 500;
     }
   `,
 })

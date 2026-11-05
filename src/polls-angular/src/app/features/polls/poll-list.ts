@@ -9,12 +9,13 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router, RouterLink } from '@angular/router';
 import { PollListItem } from '../../core/api/api.models';
 import { LoadError } from '../../shared/load-error';
+import { Progress } from '../../shared/progress';
 import { CreatePollDialog } from './create-poll-dialog';
 
 /** D35/D50: owned and participating polls in one list, newest change first. */
 @Component({
   selector: 'app-poll-list',
-  imports: [DatePipe, RouterLink, MatButtonModule, MatIconModule, MatListModule, MatProgressBarModule, LoadError],
+  imports: [DatePipe, RouterLink, MatButtonModule, MatIconModule, MatListModule, MatProgressBarModule, LoadError, Progress],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="page-header">
@@ -45,6 +46,10 @@ import { CreatePollDialog } from './create-poll-dialog';
               <span class="role-badge" [class.owner]="poll.role === 'owner'">
                 {{ poll.role === 'owner' ? 'Właściciel' : 'Uczestnik' }}
               </span>
+              ·
+              <app-progress [done]="poll.answered" [total]="poll.questionCount">
+                {{ poll.questionCount ? poll.answered + ' / ' + poll.questionCount + ' odpowiedzi' : 'Brak pytań' }}
+              </app-progress>
               · zmieniona {{ poll.modifiedAt | date: 'dd.MM.yyyy HH:mm' }}
             </span>
           </a>

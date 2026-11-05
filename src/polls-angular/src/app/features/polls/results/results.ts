@@ -4,14 +4,16 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { PollResults } from '../../../core/api/api.models';
+import { MatIconModule } from '@angular/material/icon';
 import { LoadError } from '../../../shared/load-error';
+import { Progress } from '../../../shared/progress';
 import { OwnerOnly } from '../owner-only';
 import { PollContext } from '../poll-context';
 
 /** Owner only (D33): answers per question, current participants only. */
 @Component({
   selector: 'app-results',
-  imports: [DatePipe, MatCardModule, MatProgressBarModule, LoadError, OwnerOnly],
+  imports: [DatePipe, MatCardModule, MatIconModule, MatProgressBarModule, LoadError, OwnerOnly, Progress],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (!poll.isOwner()) {
@@ -28,6 +30,11 @@ import { PollContext } from '../poll-context';
         <mat-card appearance="outlined" class="question">
           <mat-card-header>
             <mat-card-title>{{ i + 1 }}. {{ question.question }}</mat-card-title>
+            <mat-card-subtitle>
+              <app-progress [done]="question.answers.length" [total]="results.value().participantCount">
+                Odpowiedziało {{ question.answers.length }} z {{ results.value().participantCount }} uczestników
+              </app-progress>
+            </mat-card-subtitle>
           </mat-card-header>
           <mat-card-content>
             @for (answer of question.answers; track answer.userId) {
@@ -39,7 +46,7 @@ import { PollContext } from '../poll-context';
                 <p>{{ answer.answer }}</p>
               </div>
             } @empty {
-              <p class="muted">Brak odpowiedzi.</p>
+              <p class="unanswered"><mat-icon aria-hidden="true">help</mat-icon> Brak odpowiedzi</p>
             }
           </mat-card-content>
         </mat-card>
@@ -54,6 +61,9 @@ import { PollContext } from '../poll-context';
     }
     mat-card-title {
       white-space: pre-line;
+    }
+    mat-card-subtitle {
+      margin-top: 4px;
     }
     .answer {
       padding: 8px 0;

@@ -45,7 +45,7 @@ describe('SaveBar', () => {
   it('highlights the empty state with a "?" icon', async () => {
     const el = await render({ dirty: false, emptyLabel: 'Brak odpowiedzi' });
 
-    expect(status(el).classList).toContain('empty');
+    expect(status(el).classList).toContain('unanswered');
     expect(status(el).querySelector('mat-icon')?.textContent).toBe('help');
     expect(status(el).textContent).toContain('Brak odpowiedzi');
   });
