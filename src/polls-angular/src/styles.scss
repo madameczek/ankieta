@@ -60,6 +60,19 @@ body {
   width: 100%;
 }
 
+// Text for screen readers only (e.g. "z" read instead of a visual "/")
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .muted {
   color: var(--mat-sys-on-surface-variant);
 }

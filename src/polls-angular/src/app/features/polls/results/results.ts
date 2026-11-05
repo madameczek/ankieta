@@ -2,13 +2,18 @@ import { DatePipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { PollResults } from '../../../core/api/api.models';
-import { MatIconModule } from '@angular/material/icon';
 import { LoadError } from '../../../shared/load-error';
 import { Progress } from '../../../shared/progress';
 import { OwnerOnly } from '../owner-only';
 import { PollContext } from '../poll-context';
+
+/** "Odpowiedziało X z Y uczestników" – "z 1 uczestnika" for a single participant (Polish genitive). */
+export function answeredLabel(answered: number, participants: number): string {
+  return `Odpowiedziało ${answered} z ${participants} ${participants === 1 ? 'uczestnika' : 'uczestników'}`;
+}
 
 /** Owner only (D33): answers per question, current participants only. */
 @Component({
@@ -32,7 +37,7 @@ import { PollContext } from '../poll-context';
             <mat-card-title>{{ i + 1 }}. {{ question.question }}</mat-card-title>
             <mat-card-subtitle>
               <app-progress [done]="question.answers.length" [total]="results.value().participantCount">
-                Odpowiedziało {{ question.answers.length }} z {{ results.value().participantCount }} uczestników
+                {{ answeredLabel(question.answers.length, results.value().participantCount) }}
               </app-progress>
             </mat-card-subtitle>
           </mat-card-header>
@@ -88,5 +93,7 @@ export class Results {
   protected readonly poll = inject(PollContext);
 
   // owner only: no request for a participant who opened the URL directly
+  protected readonly answeredLabel = answeredLabel;
+
   protected readonly results = httpResource<PollResults>(() => (this.poll.isOwner() ? this.poll.url('/results') : undefined));
 }

@@ -79,11 +79,14 @@ import { PollContext } from '../poll-context';
                 <span class="role-badge owner">Właściciel</span>
               }
             </span>
-            <span matListItemLine>
-              <app-progress [done]="participant.answered" [total]="questionCount()">
-                {{ questionCount() ? participant.answered + ' / ' + questionCount() + ' odpowiedzi' : 'Brak pytań' }}
-              </app-progress>
-            </span>
+            @if (questionCount()) {
+              <span matListItemLine>
+                <app-progress [done]="participant.answered" [total]="questionCount()">
+                  {{ participant.answered }} <span aria-hidden="true">/</span><span class="sr-only">z</span>
+                  {{ questionCount() }} odpowiedzi
+                </app-progress>
+              </span>
+            }
             @if (!participant.isOwner) {
               <button mat-icon-button matListItemMeta (click)="remove(participant)" aria-label="Usuń uczestnika">
                 <mat-icon>person_remove</mat-icon>
@@ -104,6 +107,12 @@ export class Participants {
 
   protected readonly searchMaxLength = Limits.search;
   protected readonly questionCount = computed(() => this.poll.current()?.questions.length ?? 0);
+
+  constructor() {
+    // The counts come fresh with the list; refresh the poll too, so the question total matches them
+    // (questions may have changed in another tab or session since the poll page opened)
+    this.poll.detail.reload();
+  }
 
   // owner only: no request for a participant who opened the URL directly
   protected readonly participants = httpResource<Participant[]>(() =>

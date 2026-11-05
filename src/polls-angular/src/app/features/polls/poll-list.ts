@@ -48,10 +48,15 @@ import { CreatePollDialog } from './create-poll-dialog';
               </span>
               ·
               <app-progress [done]="poll.answered" [total]="poll.questionCount">
-                {{ poll.questionCount ? poll.answered + ' / ' + poll.questionCount + ' odpowiedzi' : 'Brak pytań' }}
+                @if (poll.questionCount) {
+                  {{ poll.answered }} <span aria-hidden="true">/</span><span class="sr-only">z</span>
+                  {{ poll.questionCount }} odpowiedzi
+                } @else {
+                  Brak pytań
+                }
               </app-progress>
-              · zmieniona {{ poll.modifiedAt | date: 'dd.MM.yyyy HH:mm' }}
             </span>
+            <span matListItemLine class="muted">zmieniona {{ poll.modifiedAt | date: 'dd.MM.yyyy HH:mm' }}</span>
           </a>
         }
       </mat-nav-list>

@@ -30,6 +30,6 @@ export const unsavedChangesGuard: CanDeactivateFn<HasUnsavedChanges> = (componen
 export function warnBeforeUnload(event: BeforeUnloadEvent, component: HasUnsavedChanges, session: SessionStore): void {
   if (session.isUser() && component.hasUnsavedChanges()) {
     event.preventDefault();
-    event.returnValue = ''; // browsers that ignore preventDefault() here
+    event.returnValue = true; // older browsers that ignore preventDefault() here
   }
 }

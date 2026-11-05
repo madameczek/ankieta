@@ -41,4 +41,31 @@ describe('Progress', () => {
     expect(el.classList).toContain('muted');
     expect(el.querySelector('mat-icon')).toBeNull();
   });
+
+  it('treats more done than total as complete', async () => {
+    const el = await render(3, 2);
+
+    expect(el.classList).toContain('complete');
+  });
+
+  it('hides the icon from screen readers (the text carries the state)', async () => {
+    const el = await render(1, 2);
+
+    expect(el.querySelector('mat-icon')?.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('switches state when the numbers change', async () => {
+    const fixture = TestBed.createComponent(Host);
+    fixture.componentInstance.total.set(2);
+    fixture.componentInstance.done.set(1);
+    await fixture.whenStable();
+    const el = fixture.nativeElement.querySelector('app-progress') as HTMLElement;
+    expect(el.classList).toContain('unanswered');
+
+    fixture.componentInstance.done.set(2);
+    await fixture.whenStable();
+
+    expect(el.classList).toContain('complete');
+    expect(el.classList).not.toContain('unanswered');
+  });
 });

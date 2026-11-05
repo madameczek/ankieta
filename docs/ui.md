@@ -35,7 +35,7 @@ API calls follow `docs/api.md`. Access: **V** visitor, **U** user, **P** partici
   - `user.name_taken` → field error; `limit.users_reached` → message in the dialog.
 
 ### `/polls` – My polls (D35)
-- `mat-nav-list` rows (D50): title, role badge ("Właściciel" / "Uczestnik"), modified date. Progress "3 / 5 odpowiedzi" (amber with "?" while incomplete, ✓ when complete, "Brak pytań" without questions). Click → `/polls/:id`.
+- `mat-nav-list` rows (D50): title; role badge ("Właściciel" / "Uczestnik") and progress; modified date on its own line. Progress "3 / 5 odpowiedzi" (amber with "?" while incomplete, ✓ when complete, "Brak pytań" without questions). Click → `/polls/:id`.
 - Empty state: "Nie uczestniczysz jeszcze w żadnej ankiecie" + "Utwórz ankietę".
 - Button "Nowa ankieta" opens a dialog (title, optional description); `POST /polls` → `/polls/:id/edit`.
   - `limit.polls_reached` → message in the dialog.
@@ -62,12 +62,12 @@ API calls follow `docs/api.md`. Access: **V** visitor, **U** user, **P** partici
 - Danger zone: "Usuń ankietę" (confirm dialog with the title) → `DELETE /polls/{id}` → `/polls`.
 
 ### `/polls/:id/participants` – Participants (D25)
-- List: name, "Właściciel" badge, progress "2 / 4 odpowiedzi" (same style as the poll list), "Usuń" (hidden for the owner; confirm dialog).
+- List: name, "Właściciel" badge, progress "2 / 4 odpowiedzi" (same style as the poll list; hidden while the poll has no questions; the poll is reloaded when the tab opens, so the total matches the fresh counts), "Usuń" (hidden for the owner; confirm dialog).
 - "Dodaj uczestnika": `mat-autocomplete` over `GET /users?search=` (debounced), excluding current participants. Pick → `POST /participants`.
 
 ### `/polls/:id/results` – Results (D33)
 - For each question in `sort_order`: question text, then a list of answers (name, answer text with line breaks kept, modified date).
-- Each question: subtitle "Odpowiedziało X z Y uczestników" (Y = current participants incl. the owner; amber while incomplete). Without answers → "Brak odpowiedzi" in amber with "?".
+- Each question: subtitle "Odpowiedziało X z Y uczestników" (Y = current participants incl. the owner; "z 1 uczestnika" for one; amber while incomplete). Without answers → "Brak odpowiedzi" in amber with "?".
 
 ## Cross-cutting
 
