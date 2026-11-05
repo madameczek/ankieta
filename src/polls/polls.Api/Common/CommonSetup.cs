@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Polls.Api.Common.Endpoints;
 using Polls.Api.Common.Handlers;
+using Polls.Api.Common.Logging;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -28,7 +29,7 @@ internal static class CommonSetup
     {
         app.UseExceptionHandler();
         app.UseStatusCodePages();
-        app.UseSerilogRequestLogging();
+        app.UseSerilogRequestLogging(o => o.GetLevel = RequestLogLevel.Get);
 
         app.MapOpenApi(RouteConsts.OpenApi);
         app.MapScalarApiReference(RouteConsts.Docs, options => options.OpenApiRoutePattern = RouteConsts.OpenApi);
