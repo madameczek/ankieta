@@ -66,7 +66,7 @@ csharp_style_expression_bodied_lambdas = true:suggestion
 csharp_style_expression_bodied_constructors = false:suggestion
 
 # Accessibility: always explicit (internal by default is a convention, so the modifier must be visible)
-dotnet_style_require_accessibility_modifiers = always:warning
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
 csharp_preferred_modifier_order = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async:suggestion
 dotnet_style_readonly_field = true:warning
 

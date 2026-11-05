@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="polls.Api.Tests/polls.Api.Tests.csproj" />
+  <Project Path="polls.Api/polls.Api.csproj" />
+  <Project Path="polls.Architecture.Tests/polls.Architecture.Tests.csproj" />
+  <Project Path="polls.Tests.Common/polls.Tests.Common.csproj" />
+</Solution>
