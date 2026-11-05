@@ -28,6 +28,7 @@ Environment-specific infrastructure (hosts, addresses, credentials, cluster rout
 ## Database
 
 - **D12 EF Core code-first.** The DbContext is used directly in handlers, without a repository or other abstraction over EF.
+- **D52 The EF model uses the Fluent API only**, no data annotations on entities. `OnModelCreating` calls `ApplyConfigurationsFromAssembly`, with one sealed `IEntityTypeConfiguration<T>` per entity in its module's `Infrastructure` folder. Max lengths shared by EF and validators come from constants in the module's `Domain` (e.g. `PollLimits.TitleMaxLength`). Validators check commands; EF config defines the schema.
 - **D13 Migrations are applied manually.** `dotnet ef migrations script --idempotent` is committed to the repo, reviewed and run against the target SQL Server. This script is also the schema-proof artifact. The app's DB login has DML rights only.
 
 ### Schema (target)
@@ -50,7 +51,7 @@ Changes from the spec: `order` becomes `sort_order` (`ORDER` is a reserved word)
   - Lockout: 3000 users / 5000 polls. Create returns a `ProblemDetails` error.
   - Limits and the admin email are set in config. A race between count and insert is acceptable for a demo.
 - **D15 Rate limiting.** The built-in ASP.NET RateLimiter uses a fixed window per client IP, read from forwarded headers. A stricter policy applies to create endpoints. Values are set in config.
-- **D16 Logging uses Serilog to Graylog (GELF)**, in every environment, development included. Each event carries an `Environment` property (Development/Production) plus `Application = polls-api`. Console output is added in development.
+- **D16 Logging uses Serilog to Graylog (GELF)**, in every environment, development included. Each event carries an `Environment` property (Development/Production) plus `Application = polls-api`. Console output is on in every environment too (`kubectl logs`, fallback when Graylog is unreachable).
 - **D17 Email goes through an external HTTP mail API.** The mail API sits behind one small `IEmailSender` interface in `Infrastructure`, called with a typed `HttpClient`. The API contract is still open, so for now `IEmailSender` is **stubbed**: a stub implementation logs the message (to, subject, body) instead of sending it, in all environments, until the contract is known.
 
 ## Frontend
