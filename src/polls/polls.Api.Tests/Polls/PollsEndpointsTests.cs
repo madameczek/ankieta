@@ -70,6 +70,14 @@ public sealed class PollsEndpointsTests(SqlServerFixture database) : PollTestBas
     }
 
     [Fact]
+    public async Task GetList_Timestamps_AreSerializedAsUtc()
+    {
+        var json = await Owner.GetStringAsync("/api/polls", Ct);
+
+        json.Should().MatchRegex("\"modifiedAt\":\"[0-9T:.-]+Z\"");
+    }
+
+    [Fact]
     public async Task Get_Outsider_Returns404()
     {
         using var response = await Outsider.GetAsync($"/api/polls/{PollId}", Ct);

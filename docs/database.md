@@ -38,10 +38,12 @@ Other commands:
 With the DDL login (the app's own login has DML rights only):
 
 ```
-sqlcmd -S <server> -d <database> -U <ddl-login> -i db/migrations.sql
+sqlcmd -I -S <server> -d <database> -U <ddl-login> -i db/migrations.sql
 ```
 
-`sqlcmd` handles the `GO` batch separators. Any SQL client that does the same works too (SSMS, Azure Data Studio).
+`-I` is required: it turns on `QUOTED_IDENTIFIER`, which the filtered unique indexes need. Without it the script fails with
+"CREATE INDEX failed because the following SET options have incorrect settings: 'QUOTED_IDENTIFIER'" and rolls back.
+`sqlcmd` handles the `GO` batch separators. SSMS and Azure Data Studio work too (`QUOTED_IDENTIFIER` is on there by default).
 
 ## Later option
 

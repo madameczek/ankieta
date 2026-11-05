@@ -22,6 +22,7 @@ internal static class CommonSetup
         // Malformed or missing bodies become a 400 ProblemDetails (code request.invalid) in every environment.
         services.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = false);
         services.AddOpenApi();
+        services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new UtcDateTimeConverter()));
         services.AddHealthChecks();
         services.AddPollsRateLimiting(configuration);
         services.AddSingleton<IEmailSender, LoggingEmailSender>();
