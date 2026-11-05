@@ -1,5 +1,4 @@
 using FluentValidation;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Polls.Api.Common.Handlers;
 using Polls.Api.Common.Results;
@@ -26,8 +25,6 @@ internal sealed class CreateUserHandler(
     IValidator<CreateUserCommand> validator,
     ThresholdGuard thresholds) : IHandler
 {
-    private const int UniqueIndexViolation = 2601;
-
     public async Task<Result<UserResponse>> HandleAsync(CreateUserCommand command, CancellationToken cancellationToken)
     {
         if (await validator.ValidateToErrorAsync(command, cancellationToken) is { } invalid)
@@ -55,7 +52,7 @@ internal sealed class CreateUserHandler(
         {
             await db.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: UniqueIndexViolation })
+        catch (DbUpdateException ex) when (ex.IsDuplicateKey())
         {
             // Same name created concurrently, after the check above.
             return Error.Conflict(UserErrors.NameTaken);

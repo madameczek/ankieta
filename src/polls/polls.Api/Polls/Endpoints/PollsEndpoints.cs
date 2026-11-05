@@ -23,7 +23,8 @@ internal sealed class PollsEndpoints : IApiEndpoint
         polls.MapDelete("{pollId:int}", DeleteAsync);
 
         var questions = polls.MapGroup("{pollId:int}/questions").WithTags("Questions");
-        questions.MapPost("", AddQuestionAsync);
+        // D15: every create endpoint has the stricter policy
+        questions.MapPost("", AddQuestionAsync).RequireRateLimiting(RateLimitPolicies.Create);
         questions.MapPut("order", ReorderAsync);
         questions.MapPut("{questionId:int}", UpdateQuestionAsync);
         questions.MapDelete("{questionId:int}", DeleteQuestionAsync);
@@ -31,14 +32,14 @@ internal sealed class PollsEndpoints : IApiEndpoint
 
         var participants = polls.MapGroup("{pollId:int}/participants").WithTags("Participants");
         participants.MapGet("", ListParticipantsAsync);
-        participants.MapPost("", AddParticipantAsync);
+        participants.MapPost("", AddParticipantAsync).RequireRateLimiting(RateLimitPolicies.Create);
         participants.MapDelete("{userId:int}", RemoveParticipantAsync);
 
         polls.MapGet("{pollId:int}/results", GetResultsAsync).WithTags("Results");
     }
 
     private static async Task<IResult> ListAsync(ClaimsPrincipal user, ListMyPollsHandler handler, CancellationToken ct) =>
-        TypedResults.Ok(await handler.HandleAsync(user.RequiredUserId(), ct));
+        (await handler.HandleAsync(user.RequiredUserId(), ct)).ToHttpResult(TypedResults.Ok);
 
     private static async Task<IResult> CreateAsync(PollRequest request, ClaimsPrincipal user, CreatePollHandler handler, CancellationToken ct) =>
         (await handler.HandleAsync(user.RequiredUserId(), new PollCommand(request.Title, request.Description), ct))
@@ -80,7 +81,7 @@ internal sealed class PollsEndpoints : IApiEndpoint
 
     private static async Task<IResult> AddParticipantAsync(
         int pollId, ParticipantRequest request, ClaimsPrincipal user, AddParticipantHandler handler, CancellationToken ct) =>
-        (await handler.HandleAsync(user.RequiredUserId(), pollId, request.UserId, ct)).ToHttpResult(TypedResults.NoContent);
+        (await handler.HandleAsync(user.RequiredUserId(), pollId, new AddParticipantCommand(request.UserId), ct)).ToHttpResult(TypedResults.NoContent);
 
     private static async Task<IResult> RemoveParticipantAsync(int pollId, int userId, ClaimsPrincipal user, RemoveParticipantHandler handler, CancellationToken ct) =>
         (await handler.HandleAsync(user.RequiredUserId(), pollId, userId, ct)).ToHttpResult(TypedResults.NoContent);

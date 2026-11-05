@@ -31,6 +31,7 @@ public sealed class HostEndpointsTests(SqlServerFixture database) : IAsyncDispos
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+        (await response.ReadProblemCodeAsync(TestContext.Current.CancellationToken)).Should().Be("route.not_found");
     }
 
     public ValueTask DisposeAsync() => _factory.DisposeAsync();

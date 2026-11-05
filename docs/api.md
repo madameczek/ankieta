@@ -58,14 +58,17 @@ Access column: **V** visitor allowed, **U** any user, **P** participant of the p
 
 ## Errors
 
-`ProblemDetails` with a stable `code` extension (English, mapped to Polish in Angular, D28). Validation errors add `errors: {field: [code]}`.
+`ProblemDetails` with a stable `code` extension on **every** error (English, mapped to Polish in Angular, D28). Validation errors add `errors: {field: [code]}`.
+Order of checks on poll routes: session (401) → poll access (404 / 403) → body validation (400), so an outsider never learns more from a 400.
+Create endpoints (users, polls, questions, participants) share the stricter `create` rate limit (D15).
 
 | Status | When | Example codes |
 | --- | --- | --- |
-| 400 | validation failed | `validation.failed` + field codes: `name.required`, `name.too_long`, `search.too_long`, `page.invalid`, `pageSize.invalid`, `title.required`, `title.too_long`, `description.too_long`, `question.required`, `question.too_long`, `answer.too_long`, `questionIds.required` |
+| 400 | validation failed | `validation.failed` + field codes: `name.required`, `name.too_long`, `search.too_long`, `page.invalid`, `pageSize.invalid`, `title.required`, `title.too_long`, `description.too_long`, `question.required`, `question.too_long`, `answer.too_long`, `questionIds.required`, `userId.required`; malformed or missing body: `request.invalid` (no field errors) |
 | 401 | visitor calls a U/P/O endpoint | `session.required` |
 | 404 | poll, question or user not found, **or the caller isn't a participant** | `poll.not_found`, `question.not_found`, `user.not_found` |
 | 403 | participant calls an owner endpoint | `poll.owner_required` |
 | 409 | conflict | `user.name_taken`, `participant.is_owner`, `questions.order_mismatch` |
 | 429 | rate limit | `rate_limited` (+ `Retry-After`) |
 | 503 | lockout threshold reached | `limit.users_reached`, `limit.polls_reached` |
+| other | produced by the framework | unknown route `route.not_found`, wrong method `method.not_allowed`, unhandled error `server.error` |

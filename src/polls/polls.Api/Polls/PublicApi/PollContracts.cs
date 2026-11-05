@@ -15,7 +15,7 @@ internal sealed record QuestionRequest(string? Question);
 
 internal sealed record QuestionOrderRequest(IReadOnlyList<int>? QuestionIds);
 
-internal sealed record ParticipantRequest(int UserId);
+internal sealed record ParticipantRequest(int? UserId);
 
 internal sealed record AnswerRequest(string? Answer);
 

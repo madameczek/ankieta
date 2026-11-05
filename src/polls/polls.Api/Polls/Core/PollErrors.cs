@@ -15,4 +15,5 @@ internal static class PollErrors
     public const string QuestionTooLong = "question.too_long";
     public const string AnswerTooLong = "answer.too_long";
     public const string QuestionIdsRequired = "questionIds.required";
+    public const string UserIdRequired = "userId.required";
 }

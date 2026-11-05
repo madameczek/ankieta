@@ -2,6 +2,7 @@ using System.Globalization;
 using Polls.Api.Common;
 using Polls.Api.Common.Logging;
 using Polls.Api.Infrastructure;
+using Polls.Api.Polls.PublicApi;
 using Polls.Api.Thresholds.PublicApi;
 using Polls.Api.Users.PublicApi;
 using Serilog;
@@ -35,6 +36,7 @@ try
     builder.Services.AddPollsDatabase();
     builder.Services.AddUsersModule(builder.Configuration);
     builder.Services.AddThresholdsModule(builder.Configuration);
+    builder.Services.AddPollsModule(builder.Configuration);
 
     var app = builder.Build();
 

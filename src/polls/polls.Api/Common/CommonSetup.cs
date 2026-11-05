@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Polls.Api.Common.Email;
 using Polls.Api.Common.Endpoints;
 using Polls.Api.Common.Handlers;
+using Polls.Api.Common.Http;
 using Polls.Api.Common.Logging;
 using Polls.Api.Common.RateLimiting;
 using Scalar.AspNetCore;
@@ -17,7 +18,9 @@ internal static class CommonSetup
         ValidatorOptions.Global.DefaultClassLevelCascadeMode = CascadeMode.Stop;
         ValidatorOptions.Global.DefaultRuleLevelCascadeMode = CascadeMode.Stop;
 
-        services.AddProblemDetails();
+        services.AddProblemDetails(o => o.CustomizeProblemDetails = FallbackErrorCodes.AddCodeIfMissing);
+        // Malformed or missing bodies become a 400 ProblemDetails (code request.invalid) in every environment.
+        services.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = false);
         services.AddOpenApi();
         services.AddHealthChecks();
         services.AddPollsRateLimiting(configuration);

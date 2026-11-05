@@ -74,7 +74,7 @@ internal sealed class ThresholdGuard(
         {
             await db.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException ex)
+        catch (DbUpdateException ex) when (ex.IsDuplicateKey())
         {
             // Another request recorded it first (race accepted, D14); at worst the email went out twice.
             logger.LogInformation(ex, "Threshold warning for {Resource} already recorded", resource);

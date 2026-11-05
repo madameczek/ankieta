@@ -1,12 +1,24 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Polls.Api.Common.Handlers;
 using Polls.Api.Common.Results;
+using Polls.Api.Common.Validation;
 using Polls.Api.Infrastructure;
 using Polls.Api.Polls.Domain;
 using Polls.Api.Polls.PublicApi;
 using Polls.Api.Users.Core;
 
 namespace Polls.Api.Polls.Core;
+
+internal sealed record AddParticipantCommand(int? UserId);
+
+internal sealed class AddParticipantCommandValidator : AbstractValidator<AddParticipantCommand>
+{
+    public AddParticipantCommandValidator() =>
+        RuleFor(c => c.UserId)
+            .NotNull().WithErrorCode(PollErrors.UserIdRequired)
+            .GreaterThan(0).WithErrorCode(PollErrors.UserIdRequired);
+}
 
 /// <summary>Owner first, then by name; with each participant's answer count.</summary>
 internal sealed class ListParticipantsHandler(PollsDbContext db, PollAccess access) : IHandler
@@ -33,10 +45,10 @@ internal sealed class ListParticipantsHandler(PollsDbContext db, PollAccess acce
     }
 }
 
-/// <summary>Idempotent: adding an existing participant changes nothing.</summary>
-internal sealed class AddParticipantHandler(PollsDbContext db, PollAccess access) : IHandler
+/// <summary>Idempotent: adding an existing participant changes nothing, also when two adds race.</summary>
+internal sealed class AddParticipantHandler(PollsDbContext db, IValidator<AddParticipantCommand> validator, PollAccess access) : IHandler
 {
-    public async Task<Result> HandleAsync(int userId, int pollId, int participantUserId, CancellationToken cancellationToken)
+    public async Task<Result> HandleAsync(int userId, int pollId, AddParticipantCommand command, CancellationToken cancellationToken)
     {
         var allowed = await access.RequireOwnerAsync(pollId, userId, cancellationToken);
         if (!allowed.IsSuccess)
@@ -44,6 +56,12 @@ internal sealed class AddParticipantHandler(PollsDbContext db, PollAccess access
             return allowed;
         }
 
+        if (await validator.ValidateToErrorAsync(command, cancellationToken) is { } invalid)
+        {
+            return invalid;
+        }
+
+        var participantUserId = command.UserId!.Value;
         if (!await db.Users.AnyAsync(u => u.Id == participantUserId, cancellationToken))
         {
             return Error.NotFound(UserErrors.NotFound);
@@ -55,7 +73,15 @@ internal sealed class AddParticipantHandler(PollsDbContext db, PollAccess access
         }
 
         db.Participants.Add(new Participant { PollId = pollId, UserId = participantUserId });
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.IsDuplicateKey())
+        {
+            // added concurrently – same outcome
+            db.ChangeTracker.Clear();
+        }
 
         return Result.Success();
     }
@@ -87,7 +113,14 @@ internal sealed class RemoveParticipantHandler(PollsDbContext db, PollAccess acc
         }
 
         db.Participants.Remove(participant);
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // removed concurrently – same outcome
+        }
 
         return Result.Success();
     }

@@ -35,7 +35,7 @@ internal static class PollCommandExtensions
 /// <summary>D35: owned and participating polls together, newest change first.</summary>
 internal sealed class ListMyPollsHandler(PollsDbContext db) : IHandler
 {
-    public async Task<IReadOnlyList<PollListItem>> HandleAsync(int userId, CancellationToken cancellationToken) =>
+    public async Task<Result<IReadOnlyList<PollListItem>>> HandleAsync(int userId, CancellationToken cancellationToken) =>
         await db.Participants.AsNoTracking()
             .Where(p => p.UserId == userId)
             .OrderByDescending(p => p.Poll.ModifiedAt)
@@ -75,19 +75,19 @@ internal sealed class CreatePollHandler(PollsDbContext db, IValidator<PollComman
 }
 
 /// <summary>Participant view and owner editor share this (questions in order, with the caller's own answers).</summary>
-internal sealed class GetPollHandler(PollsDbContext db, PollAccess access) : IHandler
+internal sealed class GetPollHandler(PollsDbContext db) : IHandler
 {
     public async Task<Result<PollDetailResponse>> HandleAsync(int userId, int pollId, CancellationToken cancellationToken)
     {
-        if (await access.IsOwnerAsync(pollId, userId, cancellationToken) is not { } isOwner)
+        // Access and poll in one query: no row = not a participant or deleted poll (D41)
+        var poll = await db.Participants.AsNoTracking()
+            .Where(p => p.PollId == pollId && p.UserId == userId)
+            .Select(p => new { p.IsOwner, p.Poll.Title, p.Poll.Description })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (poll is null)
         {
             return Error.NotFound(PollErrors.NotFound);
         }
-
-        var poll = await db.Polls.AsNoTracking()
-            .Where(p => p.Id == pollId)
-            .Select(p => new { p.Title, p.Description })
-            .SingleAsync(cancellationToken);
 
         var questions = await db.Questions.AsNoTracking()
             .Where(q => q.PollId == pollId)
@@ -100,7 +100,7 @@ internal sealed class GetPollHandler(PollsDbContext db, PollAccess access) : IHa
                 q.Answers.Where(a => a.UserId == userId).Select(a => (DateTime?)a.ModifiedAt).FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
-        return new PollDetailResponse(pollId, poll.Title, poll.Description, PollRoles.Of(isOwner), questions);
+        return new PollDetailResponse(pollId, poll.Title, poll.Description, PollRoles.Of(poll.IsOwner), questions);
     }
 }
 
@@ -108,18 +108,24 @@ internal sealed class UpdatePollHandler(PollsDbContext db, IValidator<PollComman
 {
     public async Task<Result> HandleAsync(int userId, int pollId, PollCommand command, CancellationToken cancellationToken)
     {
-        if (await validator.ValidateToErrorAsync(command, cancellationToken) is { } invalid)
-        {
-            return invalid;
-        }
-
         var allowed = await access.RequireOwnerAsync(pollId, userId, cancellationToken);
         if (!allowed.IsSuccess)
         {
             return allowed;
         }
 
-        var poll = await db.Polls.SingleAsync(p => p.Id == pollId, cancellationToken);
+        if (await validator.ValidateToErrorAsync(command, cancellationToken) is { } invalid)
+        {
+            return invalid;
+        }
+
+        var poll = await db.Polls.SingleOrDefaultAsync(p => p.Id == pollId, cancellationToken);
+        if (poll is null)
+        {
+            // deleted after the access check
+            return Error.NotFound(PollErrors.NotFound);
+        }
+
         poll.Title = command.NormalizedTitle();
         poll.Description = command.NormalizedDescription();
         await db.SaveChangesAsync(cancellationToken);
@@ -139,7 +145,13 @@ internal sealed class DeletePollHandler(PollsDbContext db, PollAccess access, Ti
             return allowed;
         }
 
-        var poll = await db.Polls.SingleAsync(p => p.Id == pollId, cancellationToken);
+        var poll = await db.Polls.SingleOrDefaultAsync(p => p.Id == pollId, cancellationToken);
+        if (poll is null)
+        {
+            // deleted after the access check
+            return Error.NotFound(PollErrors.NotFound);
+        }
+
         poll.DeletedAt = timeProvider.GetUtcNow().UtcDateTime;
         await db.SaveChangesAsync(cancellationToken);
 

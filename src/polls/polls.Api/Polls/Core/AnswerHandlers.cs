@@ -26,15 +26,15 @@ internal sealed class SaveAnswerHandler(PollsDbContext db, IValidator<AnswerComm
 {
     public async Task<Result<SavedAnswerResponse?>> HandleAsync(int userId, int pollId, int questionId, AnswerCommand command, CancellationToken cancellationToken)
     {
-        if (await validator.ValidateToErrorAsync(command, cancellationToken) is { } invalid)
-        {
-            return invalid;
-        }
-
         var allowed = await access.RequireParticipantAsync(pollId, userId, cancellationToken);
         if (!allowed.IsSuccess)
         {
             return allowed.Error;
+        }
+
+        if (await validator.ValidateToErrorAsync(command, cancellationToken) is { } invalid)
+        {
+            return invalid;
         }
 
         if (!await db.Questions.AnyAsync(q => q.Id == questionId && q.PollId == pollId, cancellationToken))
@@ -63,6 +63,8 @@ internal sealed class SaveAnswerHandler(PollsDbContext db, IValidator<AnswerComm
         else
         {
             answer.Text = command.Answer;
+            // Saving the same text again still counts as an edit (D29): the interceptor sets the new time.
+            db.Entry(answer).Property(a => a.ModifiedAt).IsModified = true;
         }
 
         await db.SaveChangesAsync(cancellationToken);
