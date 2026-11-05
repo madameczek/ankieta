@@ -1,6 +1,6 @@
 import { registerLocaleData } from '@angular/common';
 import localePl from '@angular/common/locales/pl';
-import { LOCALE_ID } from '@angular/core';
+import { Component, LOCALE_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SaveBar } from './save-bar';
 
@@ -67,14 +67,68 @@ describe('SaveBar', () => {
     expect(saved).toHaveBeenCalledOnce();
   });
 
-  it('submits the form instead of emitting when used inside one', async () => {
-    const el = await render({ dirty: true, submit: true });
-    const saved = vi.fn();
-    fixture.componentInstance.save.subscribe(saved);
+  it('disables "Zapisz" while saving', async () => {
+    const el = await render({ dirty: true, state: 'saving' });
 
-    button(el).click();
+    expect(button(el).disabled).toBe(true);
+    expect(status(el).textContent).toContain('Zapisywanie');
+  });
 
-    expect(button(el).type).toBe('submit');
-    expect(saved).not.toHaveBeenCalled();
+  it('hides the empty label once something is saved or typed', async () => {
+    let el = await render({ dirty: false, emptyLabel: 'Brak odpowiedzi', savedAt: '2026-11-05T10:00:00Z' });
+    expect(status(el).textContent).not.toContain('Brak odpowiedzi');
+
+    TestBed.resetTestingModule();
+    el = await render({ dirty: true, emptyLabel: 'Brak odpowiedzi' });
+    expect(status(el).textContent).not.toContain('Brak odpowiedzi');
+    expect(status(el).textContent).toContain('Niezapisane zmiany');
+  });
+
+  it('links the button to what it saves for screen readers', async () => {
+    const el = await render({ dirty: true, describedBy: 'question-7' });
+
+    expect(button(el).getAttribute('aria-describedby')).toBe('question-7');
+  });
+});
+
+@Component({
+  imports: [SaveBar],
+  template: `
+    <form (submit)="$event.preventDefault(); submitted = submitted + 1">
+      <input name="title" />
+      <app-save-bar [dirty]="dirty" [submit]="true" (save)="emitted = emitted + 1" />
+    </form>
+  `,
+})
+class FormHost {
+  dirty = true;
+  submitted = 0;
+  emitted = 0;
+}
+
+describe('SaveBar inside a form', () => {
+  it('submits the form once and never emits save', async () => {
+    const fixture = TestBed.createComponent(FormHost);
+    await fixture.whenStable();
+    const host = fixture.componentInstance;
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+
+    button.click();
+
+    expect(button.type).toBe('submit');
+    expect(host.submitted).toBe(1);
+    expect(host.emitted).toBe(0);
+  });
+
+  it('does not submit while nothing changed (the button is disabled)', async () => {
+    const fixture = TestBed.createComponent(FormHost);
+    fixture.componentInstance.dirty = false;
+    await fixture.whenStable();
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+
+    button.click();
+
+    expect(button.disabled).toBe(true);
+    expect(fixture.componentInstance.submitted).toBe(0);
   });
 });

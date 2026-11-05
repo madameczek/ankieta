@@ -38,6 +38,7 @@ export type SaveState = 'idle' | 'saving' | 'error';
       [type]="submit() ? 'submit' : 'button'"
       (click)="submit() || save.emit()"
       [disabled]="!dirty() || invalid() || state() === 'saving'"
+      [attr.aria-describedby]="describedBy()"
     >
       Zapisz
     </button>
@@ -56,7 +57,7 @@ export type SaveState = 'idle' | 'saving' | 'error';
       gap: 4px;
     }
     .empty {
-      color: var(--mat-sys-tertiary);
+      color: var(--app-unanswered);
       font-weight: 500;
     }
   `,
@@ -70,8 +71,10 @@ export class SaveBar {
   readonly emptyLabel = input('');
   /** Input is not valid (e.g. a required field is empty): the button stays disabled. */
   readonly invalid = input(false);
-  /** Inside a form: the button submits the form instead of emitting `save`. */
+  /** Inside a form: the button submits the form instead of emitting `save` (a `(save)` binding is then ignored). */
   readonly submit = input(false);
+  /** Id of the element naming what is saved (e.g. the question), so each "Zapisz" is distinct for screen readers. */
+  readonly describedBy = input<string | null>(null);
 
   readonly save = output<void>();
 

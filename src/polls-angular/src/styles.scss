@@ -12,11 +12,21 @@ html {
       density: 0,
     )
   );
+
+  // Field labels a bit lighter than typed text, so an empty field's label is easy to tell from a value.
+  // 85 % keeps WCAG AA contrast (≥ 4.5:1) on the filled container in light and dark.
+  @include mat.form-field-overrides(
+    (
+      filled-label-text-color: color-mix(in srgb, var(--mat-sys-on-surface-variant) 85%, transparent),
+    )
+  );
 }
 
 body {
   // D47: follow the system light/dark setting, no toggle
   color-scheme: light dark;
+  // Unanswered question ("Brak odpowiedzi"): amber, distinct from the blue primary; AA contrast in both schemes
+  --app-unanswered: light-dark(#8a5a00, #ffb84d);
   background-color: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
@@ -50,13 +60,6 @@ body {
   width: 100%;
 }
 
-// Label resting inside an empty field: lighter than typed text, so the two are easy to tell apart.
-// A floated label (focused or filled) keeps the theme colour.
-// (selector outweighs Material's resting/hover label rules, which load after this file)
-.mat-mdc-form-field .mat-mdc-text-field-wrapper.mdc-text-field .mdc-floating-label:not(.mdc-floating-label--float-above) {
-  color: color-mix(in srgb, var(--mat-sys-on-surface-variant) 55%, transparent);
-}
-
 .muted {
   color: var(--mat-sys-on-surface-variant);
 }
@@ -85,8 +88,12 @@ body {
   }
 }
 
-// Material's filled button reads its colours from these tokens (a plain background-color loses)
+// Material's filled button takes its colours from tokens (a plain background-color loses)
 button.danger {
-  --mat-button-filled-container-color: var(--mat-sys-error);
-  --mat-button-filled-label-text-color: var(--mat-sys-on-error);
+  @include mat.button-overrides(
+    (
+      filled-container-color: var(--mat-sys-error),
+      filled-label-text-color: var(--mat-sys-on-error),
+    )
+  );
 }

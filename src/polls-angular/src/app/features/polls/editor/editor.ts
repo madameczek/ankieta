@@ -1,7 +1,7 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { TextFieldModule } from '@angular/cdk/text-field';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, linkedSignal, signal, untracked } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -56,11 +56,12 @@ export class Editor implements HasUnsavedChanges {
     source: () => this.poll.current()?.id,
     computation: () => untracked(() => this.poll.current()?.description ?? ''),
   });
-  /** Last saved poll fields: follow every reload, set at once after a save. */
+  /** Last saved poll fields (as the API stores them: trimmed): follow every reload, set at once after a save. */
   private readonly savedTitle = linkedSignal(() => this.poll.current()?.title ?? '');
   private readonly savedDescription = linkedSignal(() => this.poll.current()?.description ?? '');
+  /** Compared trimmed: the API trims both fields, so surrounding whitespace is not a change. */
   protected readonly pollDirty = computed(
-    () => this.title() !== this.savedTitle() || this.description() !== this.savedDescription(),
+    () => this.title().trim() !== this.savedTitle() || this.description().trim() !== this.savedDescription(),
   );
   protected readonly pollState = signal<SaveState>('idle');
   protected readonly pollError = signal<string | null>(null);
@@ -83,8 +84,19 @@ export class Editor implements HasUnsavedChanges {
 
   protected readonly editDirty = computed(() => {
     const id = this.editingId();
-    return id !== null && this.editText() !== this.questions().find((q) => q.id === id)?.question;
+    const question = id === null ? undefined : this.questions().find((q) => q.id === id);
+    return !!question && this.editText() !== question.question;
   });
+
+  constructor() {
+    // The edited question disappeared on a reload (deleted elsewhere): close the edit, so dragging works again
+    effect(() => {
+      const id = this.editingId();
+      if (id !== null && !this.questions().some((q) => q.id === id)) {
+        this.editingId.set(null);
+      }
+    });
+  }
 
   protected async savePoll(): Promise<void> {
     if (!this.pollDirty() || !this.title().trim() || this.pollState() === 'saving') {
@@ -92,8 +104,8 @@ export class Editor implements HasUnsavedChanges {
     }
     this.pollError.set(null);
     this.pollState.set('saving');
-    const title = this.title();
-    const description = this.description();
+    const title = this.title().trim();
+    const description = this.description().trim();
     const body = { title, description: description || null };
     const ok = await this.run(
       () => this.http.put(this.poll.url(), body),

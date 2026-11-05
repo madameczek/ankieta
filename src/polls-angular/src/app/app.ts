@@ -62,8 +62,12 @@ export class App {
   protected async leave(): Promise<void> {
     // Navigate first: the screen's unsaved-changes guard can still ask while the user is signed in (D46)
     const onUsers = this.router.url.split(/[?#]/)[0] === '/users';
-    if (!onUsers && !(await this.router.navigate(['/users']))) {
-      return;
+    try {
+      if (!onUsers && !(await this.router.navigate(['/users']))) {
+        return; // cancelled in the unsaved-changes dialog, or superseded: stay signed in
+      }
+    } catch {
+      return; // navigation failed (e.g. a chunk did not load): stay signed in
     }
     try {
       await this.session.leave();

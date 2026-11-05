@@ -49,9 +49,9 @@ API calls follow `docs/api.md`. Access: **V** visitor, **U** user, **P** partici
 
 ### `/polls/:id/answers` – My answers (D29, D31)
 - Questions in `sort_order`. Each one: question text, `textarea` (one line, grows with Enter; max 4000 characters with a counter) and the shared save bar:
-  status "Zapisano 12:34" · "Niezapisane zmiany" · "Zapisywanie…" · error text, and "Zapisz" (outlined, enabled only with unsaved changes).
-- Unanswered question (or empty text saved, which deletes the answer): status "Brak odpowiedzi" in the accent colour with a "?" icon.
-- Unsaved changes: leaving the route, switching the user or "Wyjdź" asks "Masz niezapisane zmiany. Opuścić stronę?" (`canDeactivate` guard), and closing or reloading the tab triggers the browser's `beforeunload` prompt (D46).
+  status "Zapisano 05.11.2026 12:34" · "Niezapisane zmiany" · "Zapisywanie…" · error text, and "Zapisz" (outlined, enabled only with unsaved changes).
+- Unanswered question (or empty text saved, which deletes the answer): status "Brak odpowiedzi" in amber with a "?" icon.
+- Unsaved changes: leaving the route, switching the user or "Wyjdź" asks "Masz niezapisane zmiany. Opuścić stronę?" (`canDeactivate` guard), and closing or reloading the tab will trigger the browser's `beforeunload` prompt (D46; not built yet, C1).
 - No questions yet → "Właściciel nie dodał jeszcze pytań".
 
 ### `/polls/:id/edit` – Poll editor (D9, D26)

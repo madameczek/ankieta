@@ -68,7 +68,7 @@
               ></textarea>
             </mat-form-field>
             <div class="row-actions">
-              <span class="muted">{{ editDirty() ? 'Niezapisane zmiany' : '' }}</span>
+              <span class="muted" aria-live="polite">{{ editDirty() ? 'Niezapisane zmiany' : '' }}</span>
               <span class="spacer"></span>
               <button mat-button (click)="editingId.set(null)">Anuluj</button>
               <button

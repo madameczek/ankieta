@@ -36,6 +36,7 @@ import { PollContext } from '../poll-context';
       [dirty]="dirty()"
       [savedAt]="savedAt()"
       emptyLabel="Brak odpowiedzi"
+      [describedBy]="headingId()"
       (save)="save()"
     />
   `,
@@ -70,6 +71,9 @@ export class AnswerItem {
   readonly dirty = computed(() => this.text() !== this.saved());
 
   protected async save(): Promise<void> {
+    if (this.state() === 'saving') {
+      return; // a fast second click before the button disabled
+    }
     this.state.set('saving');
     const text = this.text();
     const questionId = this.question().id;
