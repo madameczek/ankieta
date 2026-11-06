@@ -58,12 +58,7 @@ internal sealed class ThresholdGuard(
         // Invalid EmailApi settings select the logging stub at startup (D17), so no address checks here.
         try
         {
-            await emailSender.SendAsync(
-                new EmailMessage(
-                    emailOptions.Value.To,
-                    $"Polls: {resource} warning threshold reached",
-                    $"{resource}: {count + 1} rows after this insert. Warning at {limits.Warning}, creation blocked at {limits.Lockout}."),
-                cancellationToken);
+            await emailSender.SendAsync(WarningEmail(emailOptions.Value.To, resource, count + 1, limits), cancellationToken);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException { InnerException: TimeoutException })
         {
@@ -82,5 +77,19 @@ internal sealed class ThresholdGuard(
             logger.LogInformation(ex, "Threshold warning for {Resource} already recorded", resource);
             db.ChangeTracker.Clear();
         }
+    }
+
+    /// <summary>The admin's warning email, in Polish like the UI (D28); the sender adds the "[tag] " subject prefix. <paramref name="total"/> includes the new row.</summary>
+    internal static EmailMessage WarningEmail(string to, string resource, int total, ThresholdLimits limits)
+    {
+        var users = resource == ThresholdWarning.Users;
+        var what = users ? "użytkowników" : "ankiet";
+        var counted = users ? "Liczba użytkowników" : "Liczba ankiet (razem z usuniętymi)";
+
+        return new EmailMessage(
+            to,
+            $"Liczba {what} osiągnęła próg ostrzeżenia",
+            $"{counted} po ostatnim zapisie: {total}. Próg ostrzeżenia: {limits.Warning}. " +
+            $"Przy {limits.Lockout} tworzenie nowych {what} zostanie zablokowane.");
     }
 }

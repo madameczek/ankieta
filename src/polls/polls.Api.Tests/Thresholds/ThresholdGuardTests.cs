@@ -73,7 +73,7 @@ public sealed class ThresholdGuardTests(SqlServerFixture database)
 
         first.IsSuccess.Should().BeTrue();
         second.IsSuccess.Should().BeTrue();
-        await _email.Received(1).SendAsync(Arg.Is<EmailMessage>(m => m.To == To && m.Subject.Contains("users")), Arg.Any<CancellationToken>());
+        await _email.Received(1).SendAsync(Arg.Is<EmailMessage>(m => m.To == To && m.Subject.Contains("użytkowników")), Arg.Any<CancellationToken>());
         (await db.ThresholdWarnings.SingleAsync(Ct)).Resource.Should().Be(ThresholdWarning.Users);
     }
 
@@ -123,6 +123,27 @@ public sealed class ThresholdGuardTests(SqlServerFixture database)
         result.IsSuccess.Should().BeTrue();
         await _email.DidNotReceiveWithAnyArgs().SendAsync(default!, Ct);
         (await db.ThresholdWarnings.AnyAsync(Ct)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void WarningEmail_Users_PolishSubjectAndBodyWithCountAndLimits()
+    {
+        var email = ThresholdGuard.WarningEmail(To, ThresholdWarning.Users, 2000, new ThresholdLimits(Warning: 2000, Lockout: 3000));
+
+        email.To.Should().Be(To);
+        email.Subject.Should().Be("Liczba użytkowników osiągnęła próg ostrzeżenia");
+        email.Body.Should().Be(
+            "Liczba użytkowników po ostatnim zapisie: 2000. Próg ostrzeżenia: 2000. Przy 3000 tworzenie nowych użytkowników zostanie zablokowane.");
+    }
+
+    [Fact]
+    public void WarningEmail_Polls_SaysDeletedPollsCount()
+    {
+        var email = ThresholdGuard.WarningEmail(To, ThresholdWarning.Polls, 3001, new ThresholdLimits(Warning: 3000, Lockout: 5000));
+
+        email.Subject.Should().Be("Liczba ankiet osiągnęła próg ostrzeżenia");
+        email.Body.Should().StartWith("Liczba ankiet (razem z usuniętymi) po ostatnim zapisie: 3001.");
+        email.Body.Should().EndWith("Przy 5000 tworzenie nowych ankiet zostanie zablokowane.");
     }
 
     private async Task<PollsDbContext> CleanContextAsync()
