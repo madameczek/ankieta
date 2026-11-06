@@ -66,6 +66,8 @@ import { CreateUserDialog } from './create-user-dialog';
         {{ debouncedSearch() ? 'Brak użytkowników pasujących do wyszukiwania.' : 'Nie ma jeszcze użytkowników.' }}
       </p>
     } @else if (users.hasValue()) {
+      <!-- narrow screens: the table scrolls inside this box instead of widening the page -->
+      <div class="table-scroll">
       <table mat-table [dataSource]="users.value().items" class="full-width">
         <ng-container matColumnDef="name">
           <th mat-header-cell *matHeaderCellDef>Nazwa</th>
@@ -88,6 +90,7 @@ import { CreateUserDialog } from './create-user-dialog';
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
         <tr mat-row *matRowDef="let user; columns: columns" [class.current]="user.id === session.user()?.id"></tr>
       </table>
+      </div>
       <mat-paginator
         [length]="users.value().total"
         [pageIndex]="page() - 1"
@@ -100,6 +103,14 @@ import { CreateUserDialog } from './create-user-dialog';
   styles: `
     .actions {
       text-align: right;
+    }
+    .table-scroll {
+      overflow-x: auto;
+    }
+    @media (max-width: 599px) {
+      .mat-column-createdAt {
+        display: none;
+      }
     }
     tr.current {
       background: var(--mat-sys-secondary-container);

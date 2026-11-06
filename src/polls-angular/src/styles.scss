@@ -40,6 +40,8 @@ body {
   font: var(--mat-sys-body-medium);
   margin: 0;
   height: 100%;
+  // the app shell scrolls its content area itself (app.ts); the document never scrolls
+  overflow: hidden;
 }
 
 // Page column; single column on small screens
