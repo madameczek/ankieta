@@ -21,7 +21,7 @@ Total: 6.25 h.
 | # | Task | Est. | Notes |
 | --- | --- | --- | --- |
 | C1 | UI extras | 0.5 h | `beforeunload` prompt (D46), "answered X of Y" counters in the poll list, participants and results (the API returns the counts already in T3/T4). Keyboard move up/down for questions: dropped |
-| C2 | E2E smoke | 0.75 h | Playwright main flow against a throwaway SQL Server container (D49) |
+| C2 | E2E smoke | 0.75 h | Playwright main flow against a dedicated test database (D49); `npm run e2e` in `src/polls-angular` |
 | C3 | docker-desktop overlay | 0.5 h | `deploy/docker-desktop/` for local Kubernetes (D21) |
 
 ## Order and dependencies
