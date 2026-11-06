@@ -14,6 +14,9 @@ const q2 = 'Ile kilometrów?';
 /** "X / Y odpowiedzi" – the DOM text also holds the screen-reader "z" next to the visual slash. */
 const counter = (done: number, total: number) => new RegExp(`${done}\\s*/\\s*z?\\s*${total} odpowiedzi`);
 
+/** The toolbar's user button; its accessible name is "<name> – menu użytkownika". */
+const userButton = (page: Page) => page.getByRole('button', { name: /menu użytkownika/i });
+
 async function createUser(page: Page, name: string): Promise<void> {
   await page.goto('/users');
   await page.getByRole('button', { name: 'Nowy użytkownik' }).click();
@@ -21,17 +24,17 @@ async function createUser(page: Page, name: string): Promise<void> {
   await dialog.getByLabel('Nazwa').fill(name);
   await dialog.getByRole('button', { name: 'Utwórz' }).click();
   await expect(page).toHaveURL(/\/polls$/);
-  await expect(page.getByRole('button', { name: 'Menu użytkownika' })).toContainText(name);
+  await expect(userButton(page)).toHaveAccessibleName(`${name} – menu użytkownika`);
 }
 
 async function becomeUser(page: Page, name: string): Promise<void> {
-  await page.getByRole('button', { name: 'Menu użytkownika' }).click();
+  await userButton(page).click();
   await page.getByRole('menuitem', { name: 'Zmień użytkownika' }).click();
   await expect(page).toHaveURL(/\/users$/);
   await page.getByLabel('Szukaj').fill(name);
   await page.getByRole('row', { name }).getByRole('button', { name: 'Wejdź w rolę' }).click();
   await expect(page).toHaveURL(/\/polls$/);
-  await expect(page.getByRole('button', { name: 'Menu użytkownika' })).toContainText(name);
+  await expect(userButton(page)).toHaveAccessibleName(`${name} – menu użytkownika`);
 }
 
 async function answer(page: Page, question: string, text: string): Promise<void> {
@@ -106,5 +109,27 @@ test('owner creates a poll, both users answer, the owner sees the results', asyn
     const second = page.locator('mat-card').filter({ hasText: q2 });
     await expect(second).toContainText('Odpowiedziało 1 z 2 uczestników');
     await expect(second).toContainText('Około 60');
+  });
+
+  await test.step('layout: aligned header, no sideways scroll on a phone, new screens start at the top', async () => {
+    const left = (selector: string) =>
+      page.locator(selector).first().evaluate((e) => Math.round(e.getBoundingClientRect().left));
+    await page.setViewportSize({ width: 1280, height: 800 });
+    expect(await left('.brand')).toBe(await left('.page-header h1'));
+
+    await page.setViewportSize({ width: 375, height: 400 });
+    await expect(userButton(page)).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+
+    const content = page.locator('main.content');
+    await content.evaluate((e) => e.scrollTo({ top: 200 }));
+    expect(await content.evaluate((e) => e.scrollTop)).toBeGreaterThan(0);
+    await page.getByRole('link', { name: 'Ankiety' }).click();
+    await expect(page).toHaveURL(/\/polls$/);
+    expect(await content.evaluate((e) => e.scrollTop)).toBe(0);
+
+    await page.goto('/users');
+    await expect(page.getByRole('table')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 });

@@ -68,28 +68,28 @@ import { CreateUserDialog } from './create-user-dialog';
     } @else if (users.hasValue()) {
       <!-- narrow screens: the table scrolls inside this box instead of widening the page -->
       <div class="table-scroll">
-      <table mat-table [dataSource]="users.value().items" class="full-width">
-        <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>Nazwa</th>
-          <td mat-cell *matCellDef="let user">{{ user.name }}</td>
-        </ng-container>
-        <ng-container matColumnDef="createdAt">
-          <th mat-header-cell *matHeaderCellDef>Utworzony</th>
-          <td mat-cell *matCellDef="let user">{{ user.createdAt | date: 'dd.MM.yyyy HH:mm' }}</td>
-        </ng-container>
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef></th>
-          <td mat-cell *matCellDef="let user" class="actions">
-            @if (user.id === session.user()?.id) {
-              <span class="muted">To Ty</span>
-            } @else {
-              <button mat-stroked-button (click)="become(user)">Wejdź w rolę</button>
-            }
-          </td>
-        </ng-container>
-        <tr mat-header-row *matHeaderRowDef="columns"></tr>
-        <tr mat-row *matRowDef="let user; columns: columns" [class.current]="user.id === session.user()?.id"></tr>
-      </table>
+        <table mat-table [dataSource]="users.value().items" class="full-width">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Nazwa</th>
+            <td mat-cell *matCellDef="let user">{{ user.name }}</td>
+          </ng-container>
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Utworzony</th>
+            <td mat-cell *matCellDef="let user">{{ user.createdAt | date: 'dd.MM.yyyy HH:mm' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let user" class="actions">
+              @if (user.id === session.user()?.id) {
+                <span class="muted">To Ty</span>
+              } @else {
+                <button mat-stroked-button (click)="become(user)">Wejdź w rolę</button>
+              }
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr mat-row *matRowDef="let user; columns: columns" [class.current]="user.id === session.user()?.id"></tr>
+        </table>
       </div>
       <mat-paginator
         [length]="users.value().total"

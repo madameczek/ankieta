@@ -1,11 +1,31 @@
 import { CdkScrollable } from '@angular/cdk/scrolling';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { Router, RouterLink, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
 import { SessionStore } from './core/session/session.store';
+
+const pathOf = (url: string) => url.split(/[?#]/)[0];
+const pollOf = (url: string) => /^\/polls\/(\d+)(\/|$)/.exec(pathOf(url))?.[1];
+
+/**
+ * Whether a navigation shows a new screen: then the content area starts at the top and gets focus.
+ * Switching tabs inside one poll (or a query change only) keeps the position.
+ */
+export function isNewScreen(previousUrl: string | null, url: string): boolean {
+  if (previousUrl === null) {
+    return true;
+  }
+  if (pathOf(previousUrl) === pathOf(url)) {
+    return false;
+  }
+  const poll = pollOf(url);
+  return poll === undefined || poll !== pollOf(previousUrl);
+}
 
 /** Shell: fixed toolbar with the current user (or "Gość") and the routed screen in its own scroll area. */
 @Component({
@@ -18,7 +38,8 @@ import { SessionStore } from './core/session/session.store';
         <a class="brand" routerLink="/">Ankiety</a>
         <span class="spacer"></span>
         @if (session.user(); as user) {
-          <button mat-button class="user" [matMenuTriggerFor]="userMenu" [attr.aria-label]="'Menu użytkownika – ' + user.name">
+          <!-- accessible name starts with the visible label (WCAG 2.5.3) -->
+          <button mat-button class="user" [matMenuTriggerFor]="userMenu" [attr.aria-label]="user.name + ' – menu użytkownika'">
             <mat-icon>account_circle</mat-icon>
             <span class="user-name">{{ user.name }}</span>
           </button>
@@ -38,21 +59,25 @@ import { SessionStore } from './core/session/session.store';
         }
       </div>
     </mat-toolbar>
-    <!-- only this area scrolls: the scrollbar starts below the header and shows only when needed -->
-    <main class="content" cdkScrollable>
+    <!-- only this area scrolls: the scrollbar starts below the header and shows only when needed;
+         tabindex -1: focused on each new screen, so keyboard scrolling works and screen readers notice the change -->
+    <main #content class="content" cdkScrollable tabindex="-1">
       <div class="page">
         <router-outlet />
       </div>
     </main>
   `,
   styles: `
-    /* Full-height column: fixed header + scrolling content (the document itself never scrolls) */
+    /* Full-height column: fixed header + scrolling content (the document itself never scrolls).
+       On phones the address bar therefore stays visible – accepted for a fixed header. */
     :host {
       display: flex;
       flex-direction: column;
+      height: 100vh; /* browsers without dvh */
       height: 100dvh;
     }
-    /* both reserve the scrollbar's width, so header and page columns stay aligned with or without a scrollbar */
+    /* Both reserve the scrollbar's width, so header and page columns stay aligned with or without a scrollbar.
+       overflow: hidden makes the toolbar a scroll container – scrollbar-gutter only applies to those. */
     mat-toolbar {
       flex: none;
       padding: 0;
@@ -80,6 +105,9 @@ import { SessionStore } from './core/session/session.store';
       overflow: auto;
       scrollbar-gutter: stable;
     }
+    .content:focus {
+      outline: none;
+    }
     .brand {
       flex: none;
       color: inherit;
@@ -91,19 +119,20 @@ import { SessionStore } from './core/session/session.store';
     }
     .user {
       min-width: 0;
-      max-width: 50%;
     }
+    /* Long names end with "…" (the limit sits on the text itself, the button label does not shrink) */
     .user-name {
       display: block;
+      max-width: min(40vw, 320px);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .guest {
-      color: var(--mat-sys-on-primary-container);
       font: var(--mat-sys-body-medium);
     }
-    /* Narrow screens: icon only (the name stays in the button's accessible name and the menu) */
+    /* Narrow screens: icon only (the name stays in the button's accessible name and the menu);
+       a visitor sees only "Wybierz użytkownika" */
     @media (max-width: 599px) {
       .user-name,
       .guest {
@@ -113,11 +142,43 @@ import { SessionStore } from './core/session/session.store';
         min-width: 48px;
       }
     }
+    /* Print the whole page, not only the visible part of the scroll area */
+    @media print {
+      :host {
+        display: block;
+        height: auto;
+      }
+      .content {
+        overflow: visible;
+      }
+      mat-toolbar {
+        box-shadow: none;
+      }
+    }
   `,
 })
 export class App {
   protected readonly session = inject(SessionStore);
   private readonly router = inject(Router);
+  private readonly content = viewChild<ElementRef<HTMLElement>>('content');
+
+  constructor() {
+    // Scrolling moved from the window to <main>: the router's own scroll handling (window only) can't do this
+    let previousUrl: string | null = null;
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe((e) => {
+        const main = this.content()?.nativeElement;
+        if (main && isNewScreen(previousUrl, e.urlAfterRedirects)) {
+          main.scrollTo({ top: 0 });
+          main.focus({ preventScroll: true });
+        }
+        previousUrl = e.urlAfterRedirects;
+      });
+  }
 
   protected async leave(): Promise<void> {
     // Navigate first: the screen's unsaved-changes guard can still ask while the user is signed in (D46)

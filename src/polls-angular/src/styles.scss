@@ -13,8 +13,6 @@ html {
     )
   );
 
-  // Field labels a bit lighter than typed text, so an empty field's label is easy to tell from a value.
-  // 85 % keeps WCAG AA contrast (≥ 4.5:1) on the filled container in light and dark.
   // Header bar: its own light-blue band, so it stands apart from the content (dark text; deep blue in dark mode)
   @include mat.toolbar-overrides(
     (
@@ -23,6 +21,8 @@ html {
     )
   );
 
+  // Field labels a bit lighter than typed text, so an empty field's label is easy to tell from a value.
+  // 85 % keeps WCAG AA contrast (≥ 4.5:1) on the filled container in light and dark.
   @include mat.form-field-overrides(
     (
       filled-label-text-color: color-mix(in srgb, var(--mat-sys-on-surface-variant) 85%, transparent),
@@ -42,6 +42,12 @@ body {
   height: 100%;
   // the app shell scrolls its content area itself (app.ts); the document never scrolls
   overflow: hidden;
+
+  // printing: let the whole content flow onto the pages
+  @media print {
+    height: auto;
+    overflow: visible;
+  }
 }
 
 // Page column; single column on small screens
