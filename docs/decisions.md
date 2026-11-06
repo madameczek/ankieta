@@ -124,4 +124,4 @@ Changes from the spec: `order` becomes `sort_order` (`ORDER` is a reserved word)
 
 ## Open items
 
-- [ ] Environment values (hosts, credentials, routing): tracked in the local-only files named at the top
+No open items: environment values (hosts, credentials, routing) are kept in the local-only files named at the top.
