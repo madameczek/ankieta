@@ -7,7 +7,8 @@ API calls follow `docs/api.md`. Access: **V** visitor, **U** user, **P** partici
 
 ## App shell
 
-- Toolbar: app name (link to start page) · current user on the right.
+- Toolbar: app name (link to start page) · current user on the right. Its own light-blue band (theme primary container, deep blue in dark mode) with a soft shadow; pinned to the top while the page scrolls.
+- Favicon: the same icons as the owner's homepage (`favicon.ico`, 16/32 px PNG, Apple touch icon) in `public/`.
   - Visitor: label "Gość" + button "Wybierz użytkownika" (→ `/users`).
   - User: name chip with a menu: "Zmień użytkownika" (→ `/users`), "Wyjdź" (`DELETE /session` → `/users`).
 - On startup the app calls `GET /api/session` and keeps the result in a `currentUser` signal (`SessionStore`). Routes render only after the call.

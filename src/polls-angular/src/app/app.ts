@@ -40,6 +40,16 @@ import { SessionStore } from './core/session/session.store';
     </main>
   `,
   styles: `
+    /* block box: the sticky toolbar then stays pinned over the whole page height */
+    :host {
+      display: block;
+    }
+    mat-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: var(--mat-sys-level1);
+    }
     .brand {
       color: inherit;
       text-decoration: none;
@@ -50,7 +60,7 @@ import { SessionStore } from './core/session/session.store';
     }
     .guest {
       margin-right: 8px;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--mat-sys-on-primary-container);
       font: var(--mat-sys-body-medium);
     }
   `,
