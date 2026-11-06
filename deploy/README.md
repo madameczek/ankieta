@@ -54,6 +54,12 @@ Other environment overlays are kept outside the repository. An overlay must prov
    `--no-build` skips the image build.
 4. Open http://localhost:30090 (NodePort). `/api` is proxied by the web pod's nginx; there is no gateway.
 
+Frontend work against this deployment (no local API needed): in `src/polls-angular` run `npm run start:docker`
+and open http://localhost:4200. `ng serve` serves the current code with live reload and forwards `/api` to
+http://localhost:30090 (`proxy.docker-desktop.json`), i.e. to the API and data of the Docker Desktop deployment;
+the session cookie is shared, because cookies don't depend on the port. `npm start` instead forwards `/api` to a
+locally run API (`proxy.conf.json`, port 5154).
+
 Differences from a cluster overlay: plain http, so `Session__SecureCookie=false`; local images, so no `ghcr-pull`;
 no client IP header (no edge proxy).
 
