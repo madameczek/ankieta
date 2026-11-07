@@ -135,3 +135,24 @@ button.danger {
     )
   );
 }
+
+// Old browsers (before Chrome 123 / Firefox 120 / Samsung Internet 25) drop every light-dark() value, so
+// the theme loses its colours. They get the light theme with plain values instead; no dark mode there.
+@supports not (color: light-dark(#000, #fff)) {
+  html {
+    @include mat.theme(
+      (
+        color: (
+          theme-type: light,
+          primary: mat.$azure-palette,
+          tertiary: mat.$blue-palette,
+        ),
+      )
+    );
+  }
+
+  body {
+    color-scheme: light;
+    --app-unanswered: #8a5a00;
+  }
+}
