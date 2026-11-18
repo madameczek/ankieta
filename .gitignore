@@ -489,6 +489,10 @@ $RECYCLE.BIN/
 *.secret.yaml
 *.secrets.yaml
 appsettings.*.local.json
+# Local secret files in any folder; the .example templates stay tracked
+secrets.env
+.env.*
+!.env.example
 
 # Angular (src/polls-angular)
 .angular/
