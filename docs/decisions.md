@@ -6,7 +6,7 @@ Environment-specific infrastructure (hosts, addresses, credentials, cluster rout
 
 ## Domain and naming
 
-- **D1 Naming.** "pool" in the spec means *poll* (ankieta). Code, DB, routes and folders use `poll`/`polls`. The k8s namespace is `polls-pkp` (changed from the spec's `ankieta`).
+- **D1 Naming.** "pool" in the spec means *poll* (ankieta). Code, DB, routes and folders use `poll`/`polls`. The k8s namespace is `polls-pkp`.
 - **D2 Answers are free text only.** No question types or choice options.
 - **D3 One answer per user per question.** `answers.id_user` FK → `users.id`, `UNIQUE(id_question, id_user)`. The app checks that the user is assigned to the poll.
 - **D4 Ownership lives in `user_poll.is_owner`.** There is no `polls.owned_by`. A filtered unique index allows exactly one owner per poll. The app creates the poll and its owner row in one transaction.
