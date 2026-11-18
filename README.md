@@ -1,6 +1,10 @@
 # Polls (ankieta)
 
-A small demo app for simple polls. An owner creates a poll with questions and adds participants; every participant
+A small demo app for simple polls. It illustrates article on [myblog](https://adameczek.pl/blog/data-modelling-with-entity-framework/?context=blog).  
+The application is deployed to my cluster and can be launched here: [Ankieta](https://ankieta.adameczek.pl/users).
+
+## Application description
+An owner creates a poll with questions and adds participants; every participant
 answers on their own; the owner sees the results. There is no real authentication – the current user is picked
 from a list and kept in a cookie. The point of the project is to prove that the database schema for polls is right.
 
@@ -37,6 +41,9 @@ Needs .NET 10 SDK, Node 24, a SQL Server database with the schema applied (`docs
 2. Frontend (in `src/polls-angular`): `npm ci`, then `npm start` and open http://localhost:4200 (`/api` is proxied to the API)
 
 Or run both in Docker Desktop's Kubernetes: `deploy/docker-desktop/deploy.sh` (see `deploy/README.md`).
+
+## Live demo
+Is deployed here: [Ankieta](https://ankieta.adameczek.pl/users).
 
 ## Tests
 - Backend (in `src/polls`): `dotnet test --solution polls.slnx` – handler, endpoint and schema tests against SQL Server
