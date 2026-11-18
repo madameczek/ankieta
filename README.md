@@ -8,7 +8,7 @@ An owner creates a poll with questions and adds participants; every participant
 answers on their own; the owner sees the results. There is no real authentication – the current user is picked
 from a list and kept in a cookie. The point of the project is to prove that the database schema for polls is right.
 
-Task: [`docs/ankieta-zadanie.md`](docs/ankieta-zadanie.md) ("pools" there means *polls*).
+Task: [`docs/ankieta-zadanie.md`](docs/ankieta-zadanie.md).
 
 ## Stack
 - **API** – .NET 10, ASP.NET Core Minimal APIs, EF Core + SQL Server, Serilog → Graylog, OpenAPI/Scalar at `/api/docs`
