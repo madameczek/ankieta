@@ -43,7 +43,7 @@ Needs .NET 10 SDK, Node 24, a SQL Server database with the schema applied (`docs
 Or run both in Docker Desktop's Kubernetes: `deploy/docker-desktop/deploy.sh` (see `deploy/README.md`).
 
 ## Live demo
-Is deployed here: [Ankieta](https://ankieta.adameczek.pl/users).
+Check running app here: [Ankieta](https://ankieta.adameczek.pl/users).
 
 ## Tests
 - Backend (in `src/polls`): `dotnet test --solution polls.slnx` – handler, endpoint and schema tests against SQL Server
